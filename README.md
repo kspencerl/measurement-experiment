@@ -40,7 +40,6 @@ plf-es-2025-2-tcci-0393100-pes-kimberly-lourenco
   - Artigo científico no formato SBC;
   - Pipeline reproduzível de coleta e análise;
   - Base de dados consolidada de cobertura e _mutation score_ por projeto/módulo.
-
 ---
 
 ### 2. Contexto e problema
@@ -100,77 +99,164 @@ O referencial deste estudo se organiza em quatro eixos principais: (i) cobertura
 
 ### 3. Objetivos e questões (Goal / Question / Metric)
 
-#### 3.1 Objetivo geral (Goal template)
+#### 3.1 Objetivo geral
 
-Preencha o objetivo geral usando um template claro (por exemplo, GQM), deixando explícito o que será analisado, com qual propósito, sob qual perspectiva e em qual contexto.
+> **Analisar**, do ponto de vista de uma pesquisadora em Engenharia de Software, **projetos Java de código aberto** com testes automatizados, com o propósito de **investigar a relação entre cobertura de código por linha e *mutation score***, no contexto de um estudo quantitativo correlacional, a fim de avaliar em que medida a cobertura pode ser usada como *proxy* da efetividade dos testes.
 
 #### 3.2 Objetivos específicos
 
-Decomponha o objetivo geral em metas mais focadas (O1, O2, etc.), que descrevam resultados concretos de aprendizado ou decisão que o experimento deve gerar.
+- **O1:** Estimar a associação entre cobertura de código por linha e *mutation score* por projeto/módulo e verificar sua significância estatística.
+- **O2:** Identificar e caracterizar casos em que há:
+  - alta cobertura e baixo *mutation score*; e  
+  - baixa/média cobertura e *mutation score* relativamente alto,  
+  descrevendo padrões recorrentes em código e testes nesses cenários.
+- **O3:** Ajustar modelos de regressão linear simples do *mutation score* em função da cobertura de código por linha e avaliar o quanto a cobertura explica a variabilidade do *mutation score*.
+- **O4:** Compreender em que condições práticas a cobertura pode (ou não) ser usada como *proxy* da efetividade dos testes, combinando evidências de correlação, regressão e discrepâncias.
 
-#### 3.3 Questões de pesquisa / de negócio
 
-Formule perguntas claras que o experimento deverá responder (Q1, Q2, etc.), em linguagem que faça sentido para os stakeholders técnicos e de negócio.
+### 3.3 GQM (Goal — Question — Metric)
 
-#### 3.4 Métricas associadas (GQM)
+| Objetivo | Pergunta | Métricas |
+|---|---|---|
+| **O1: Associação cobertura–efetividade**<br>Investigar a relação entre cobertura de código por linha e *mutation score* em projetos Java de código aberto. | **Q1.1:** Qual é a força e a direção da associação entre cobertura de código por linha e *mutation score* em projetos Java de código aberto? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M3: Correlação de Spearman (ρ);<br>M4: Correlação de Pearson (r), quando aplicável |
+| **O1: Associação cobertura–efetividade** | **Q1.2:** Essa associação se mantém estável quando removemos projetos extremos (por exemplo, *outliers* em cobertura ou *mutation score*)? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M3: Correlação de Spearman (ρ) com e sem *outliers* |
+| **O1: Associação cobertura–efetividade** | **Q1.3:** A força da associação entre cobertura e *mutation score* varia de forma relevante entre faixas de tamanho de projeto ou de tamanho da suíte de testes? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M3: Correlação de Spearman (ρ) por estratos;<br>M7: LOC aproximado;<br>M8: Nº de testes automatizados |
+| **O2: Casos de discrepância**<br>Identificar e caracterizar projetos em que cobertura e *mutation score* divergem de forma relevante. | **Q2.1:** Com que frequência surgem projetos com alta cobertura e baixo *mutation score* e o inverso (baixa/média cobertura e *mutation score* alto)? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M5: Quadrantes de discrepância (proporção por quadrante) |
+| **O2: Casos de discrepância** | **Q2.2:** Que características de contexto (tamanho, número de testes, idade, operadores de mutação) aparecem com mais frequência nos projetos discrepantes? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M5: Quadrantes de discrepância;<br>M7: LOC aproximado;<br>M8: Nº de testes automatizados;<br>M9: Idade/atividade do projeto;<br>M10: Distribuição de operadores de mutação |
+| **O2: Casos de discrepância** | **Q2.3:** Como se comportam exemplos representativos de projetos discrepantes em termos de estrutura de testes (por exemplo, presença de *test smells* ou padrões de *asserts*)? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M5: Quadrantes de discrepância;<br>M8: Nº de testes automatizados;<br>M10: Distribuição de operadores de mutação (por arquivo/classe selecionados) |
+| **O3: Capacidade preditiva da cobertura**<br>Ajustar modelos de regressão linear simples do mutation score em função da cobertura de código por linha e avaliar o quanto a cobertura consegue explicar ou prever a variação observada no *mutation score*. | **Q3.1:** Em que medida a cobertura de código por linha explica a variabilidade do *mutation score* quando usamos modelos de regressão linear simples? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M6: Parâmetros de regressão (coeficiente angular, intercepto, R² ajustado, RMSE, MAE) |
+| **O3: Capacidade preditiva da cobertura** | **Q3.2:** Como se comportam os erros de predição do modelo (por exemplo, RMSE e MAE) em diferentes faixas de cobertura (baixa, média, alta)? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M6: Parâmetros de regressão (R² ajustado, RMSE, MAE por faixa de cobertura) |
+| **O3: Capacidade preditiva da cobertura** | **Q3.3:** Há relação sistemática entre os resíduos do modelo (diferença entre *mutation score* observado e previsto) e variáveis de contexto como tamanho do projeto, número de testes ou idade? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M6: Resíduos do modelo;<br>M7: LOC aproximado;<br>M8: Nº de testes automatizados;<br>M9: Idade/atividade do projeto |
+| **O4: Uso da cobertura como *proxy***<br>Compreender em que condições a cobertura pode ser usada como *proxy* da efetividade dos testes. | **Q4.1:** Em quais condições práticas (faixas de cobertura, faixas de *mutation score*, contexto dos projetos) a cobertura parece funcionar como *proxy* razoável da efetividade dos testes? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M3: Correlação de Spearman (ρ);<br>M5: Quadrantes de discrepância;<br>M6: Parâmetros de regressão;<br>M7–M10: Variáveis de apoio (LOC, nº de testes, idade do projeto, operadores de mutação) |
+| **O4: Uso da cobertura como *proxy*** | **Q4.2:** Em quais condições a cobertura se mostra um indicador limitado (por exemplo, alta cobertura com *mutation score* baixo) e que fatores adicionais precisam ser considerados na interpretação? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M5: Quadrantes de discrepância;<br>M7–M10: Variáveis de apoio (LOC, nº de testes, idade, operadores de mutação) |
+| **O4: Uso da cobertura como *proxy*** | **Q4.3:** Que recomendações práticas podem ser derivadas para o uso combinado de cobertura e *mutation score* em políticas de qualidade (por exemplo, definição de metas, uso amostral de mutação)? | M1: Cobertura de código por linha (%);<br>M2: *Mutation score* (%);<br>M3: Correlação de Spearman (ρ);<br>M5: Quadrantes de discrepância;<br>M6: Parâmetros de regressão |
 
-Associe a cada questão as métricas que serão usadas para respondê-la, com nome, definição, unidade e fonte dos dados, garantindo alinhamento entre G, Q e M.
+---
+
+### 3.4 Tabela de métricas (descrição e unidade)
+
+| Métrica | Descrição | Unidade |
+|---|---|---|
+| **M1 – Cobertura de código por linha** | Percentual de linhas de código de produção exercitadas pela suíte de testes automatizados, conforme relatórios JaCoCo gerados após a execução dos testes. | porcentagem (%) |
+| **M2 – *Mutation score* global** | Percentual de mutantes mortos em relação ao total de mutantes válidos gerados pelo PIT para o projeto/módulo analisado. | porcentagem (%) |
+| **M3 – Correlação de Spearman (ρ)** | Coeficiente de correlação de Spearman entre a cobertura de código por linha (M1) e o *mutation score* (M2), capturando associações monotônicas (não necessariamente lineares). | valor adimensional (−1 a 1) |
+| **M4 – Correlação de Pearson (r)** | Coeficiente de correlação de Pearson entre M1 e M2, utilizado quando os pressupostos de linearidade e distribuição aproximadamente normal dos resíduos forem razoáveis. | valor adimensional (−1 a 1) |
+| **M5 – Quadrantes de discrepância** | Classificação dos projetos em quadrantes, por exemplo: QH-L (cobertura ≥ 80% e *mutation score* < 60%) e QL-H (cobertura < 60% e *mutation score* ≥ 80%), e cálculo da proporção de projetos em cada quadrante. | porcentagem (%) de projetos por quadrante |
+| **M6 – Parâmetros de regressão e ajuste** | Conjunto de estatísticas do modelo de regressão linear simples do *mutation score* (M2) em função da cobertura (M1): coeficiente angular, intercepto, R² ajustado, erro quadrático médio (RMSE) e erro absoluto médio (MAE). | diversos (coeficientes adimensionais; R² adimensional; RMSE e MAE em pontos de *mutation score* (%)) |
+| **M7 – LOC (Lines of Code)** | Número aproximado de linhas de código de produção do projeto/módulo (métrica de tamanho utilizada como variável de contexto). | contagem (linhas) |
+| **M8 – Número de testes automatizados** | Quantidade de casos de teste automatizados presentes no projeto/módulo (por exemplo, métodos de teste JUnit). | contagem |
+| **M9 – Idade / atividade do projeto** | Indicador de maturidade/atividade do projeto, como tempo desde o primeiro *commit* ou data do último *commit* relevante dentro da janela analisada. | tempo (anos/meses) ou marca temporal |
+| **M10 – Distribuição de operadores de mutação** | Proporção de mutantes gerados por cada tipo de operador de mutação (por exemplo, operadores aritméticos, relacionais, lógicos), usada para contextualizar o *mutation score* obtido. | porcentagem (%) por tipo de operador |
 
 ---
 
 ### 4. Escopo e contexto do experimento
 
 #### 4.1 Escopo funcional / de processo (incluído e excluído)
+- **Incluído:**
+  - Projetos Java de código aberto hospedados no GitHub com:
+    - configuração de build via Maven ou Gradle;
+    - presença clara de testes automatizados (dependências JUnit etc.);
+    - *build* e execução de testes bem-sucedidos em ambiente padronizado.
+  - Coleta de cobertura de código por linha com JaCoCo.
+  - Execução de *mutation testing* com PIT em nível de projeto/módulo.
+  - Consolidação de métricas (cobertura, *mutation score*, variáveis de apoio) em CSV.
+  - Análises estatísticas (correlação, regressão, quadrantes de discrepância).
 
-Explique claramente o que será coberto (atividades, artefatos, equipes, módulos) e o que ficará fora do experimento, para evitar interpretações divergentes.
+- **Excluído:**
+  - Projetos que não compilam ou não executam testes de forma determinística no ambiente definido.
+  - Outras linguagens (Kotlin, Scala, C#, etc.).
+  - Métricas de cobertura que não sejam cobertura por linha (e.g., branch, instruction, path), salvo uso auxiliar.
+  - Testes manuais, testes exploratórios, testes não orquestrados via Maven/Gradle.
+  - Intervenções diretas no processo de desenvolvimento de equipes (o estudo não altera políticas de CI/CD dos projetos).
 
 #### 4.2 Contexto do estudo (tipo de organização, projeto, experiência)
-
-Caracterize o contexto em que o estudo ocorrerá: tipo e tamanho de organização, tipo de projeto, criticidade e perfil de experiência dos participantes.
+- **Tipo de organização:** contexto acadêmico (TCC) analisando projetos de código aberto mantidos por comunidades diversas (empresas, indivíduos, fundações).
+- **Tipo de projetos:** bibliotecas, frameworks e aplicações Java com base de usuários real; variando em tamanho, idade e popularidade.
+- **Criticidade:** heterogênea – alguns projetos podem ser usados em contextos críticos, outros em aplicações comuns.
+- **Perfil de experiência dos “participantes”:** não há participação direta de indivíduos; a “unidade de análise” é o projeto/módulo de software. Assume-se que projetos com maior popularidade tendem a ter mantenedores experientes, mas isso não é controlado.
 
 #### 4.3 Premissas
-
-Liste as suposições consideradas verdadeiras para o plano funcionar (por exemplo, disponibilidade de ambiente, estabilidade do sistema), mesmo que não possam ser garantidas.
+- Os projetos selecionados conseguem ser *buildados* e ter seus testes executados com configurações razoavelmente padronizadas (JDK compatível, versões de Maven/Gradle).
+- Os relatórios de JaCoCo e PIT são gerados de forma consistente e confiável para cada projeto.
+- Os testes automatizados são determinísticos o suficiente para que múltiplas execuções não gerem variações significativas nas métricas.
+- A API do GitHub permanece disponível e utilizável com limites de *rate* que permitem coletar o corpus planejado.
+- O ambiente de execução (VM/máquina) dispõe de recursos suficientes (CPU/RAM/tempo) para executar testes e mutação nos projetos selecionados.
 
 #### 4.4 Restrições
-
-Registre limitações práticas como tempo, orçamento, ferramentas, acessos ou regras organizacionais que impõem limites ao desenho.
+- **Tempo:** o estudo precisa ser executado dentro da janela do TCC II (fev–jun/2026), limitando tamanho do corpus e profundidade das análises.
+- **Recursos computacionais:** execução de PIT é custosa; isso restringe o número de projetos/módulos e a granularidade (ex.: rodar por módulo em vez de por classe).
+- **Ferramentas:** uso de JaCoCo e PIT, e versões específicas de JDK, Maven/Gradle, que podem introduzir incompatibilidades com alguns projetos mais antigos ou muito recentes.
+- **Acessos:** dependência da disponibilidade pública dos repositórios e da integridade do histórico de *build* (por exemplo, dependências externas que podem ficar indisponíveis).
+- **Escopo acadêmico:** não há acesso a métricas internas de empresas; a análise se limita ao que é observável em projetos de código aberto.
 
 #### 4.5 Limitações previstas
+- **Validade externa:** resultados são mais diretamente válidos para projetos Java de código aberto, com certas características de popularidade/atividade, não necessariamente para sistemas proprietários ou de outros domínios tecnologicamente específicos.
+- **Amostra não aleatória:** a seleção de projetos com base em filtros de linguagem, popularidade e atividade recente faz com que a amostra tenda a incluir principalmente projetos mais maduros e bem mantidos. Isso pode introduzir viés de seleção, pois os resultados obtidos podem refletir melhor o comportamento desse tipo de projeto do que o de projetos menos populares, desatualizados ou com práticas de teste menos consolidadas.
 
-Explique fatores que podem prejudicar a generalização dos resultados (validez externa), como contexto muito específico ou amostra pouco representativa.
+- **Medição imperfeita:** presença de mutantes equivalentes e possíveis falhas de cobertura/relatórios podem distorcer parcialmente o *mutation score* e a cobertura medida.
+- **Caráter observacional:** não há controle experimental de fatores como experiência das equipes, políticas de qualidade ou domínio de aplicação; isso limita inferências causais.
 
 ---
 
 ### 5. Stakeholders e impacto esperado
 
 #### 5.1 Stakeholders principais
-
-Liste os grupos ou papéis que têm interesse ou serão impactados pelo experimento (por exemplo, devs, QA, produto, gestores, clientes internos).
+- Autora do TCC (pesquisadora).
+- Orientadores e banca avaliadora do TCC.
+- Comunidade acadêmica de Engenharia de Software (pesquisadores em teste de software, métricas e qualidade).
+- Profissionais de qualidade e testes de software.
+- Desenvolvedores e mantenedores de projetos Java de código aberto.
+- Equipes que utilizam cobertura em pipelines de CI/CD.
 
 #### 5.2 Interesses e expectativas dos stakeholders
-
-Descreva o que cada grupo espera obter do experimento (insights, evidências, validação de decisão, mitigação de risco, etc.).
+- **Autora e orientadores:**  
+  - Obter evidências empíricas sólidas para responder às questões de pesquisa.  
+  - Entregar um TCC tecnicamente robusto, reprodutível e alinhado à literatura recente.  
+- **Banca e comunidade acadêmica:**  
+  - Avaliar a qualidade metodológica do estudo.  
+  - Utilizar o protocolo e a base de dados como referência para pesquisas futuras em métricas de teste.
+- **Profissionais de QA e desenvolvimento:**  
+    - Subsidiar a definição e a revisão de políticas que usam cobertura como KPI (*Key Performance Indicator*), apresentando em quais contextos esse indicador é confiável e em quais requer cautela.  
+    - Apoiar a priorização de esforços de teste, mostrando quando aumentar apenas a cobertura tende a ter baixo retorno em detecção de defeitos e quando a combinação com métricas de mutação é mais apropriada.  
+    - Oferecer orientação básica para interpretar, em conjunto, relatórios de cobertura e *mutation score* em pipelines de CI/CD.
+- **Mantenedores de projetos *OSS (Open Source Software)*:**  
+    - Usar os resultados como insumo para revisar metas de cobertura e práticas de teste em seus repositórios.  
+    - Avaliar se a adoção, mesmo que pontual ou amostral, de *mutation testing* faz sentido em projetos mais críticos ou populares.
 
 #### 5.3 Impactos potenciais no processo / produto
-
-Antecipe como a execução do experimento pode afetar prazos, qualidade, carga de trabalho ou o próprio produto durante e após o estudo.
+- **Nos projetos OSS analisados:**  
+  - Impacto direto mínimo, pois o estudo não altera código nem testes dos repositórios; apenas executa *builds* e ferramentas de análise em clones locais.  
+- **Na prática de QA:**  
+  - Possível revisão de políticas que tratam cobertura como meta absoluta.  
+  - Estímulo à combinação de métricas (cobertura + *mutation score* ou outras evidências) em vez de foco exclusivo em cobertura.
+- **Na formação acadêmica:**  
+  - Disponibilização de um estudo de caso reprodutível para ensino de métricas de teste, correlação e ameaças à validade.
 
 ---
 
 ### 6. Riscos de alto nível, premissas e critérios de sucesso
 
 #### 6.1 Riscos de alto nível (negócio, técnicos, etc.)
-
-Identifique os principais riscos para negócio e tecnologia (atrasos, falhas de ambiente, indisponibilidade de dados, etc.) em nível macro.
+- **R1 – Baixo número de projetos válidos:** muitos repositórios podem falhar em *build/test*, reduzindo o tamanho efetivo da amostra.
+- **R2 – Custo computacional da mutação:** PIT pode tornar inviável rodar mutação completa para todos os projetos dentro do tempo e recursos disponíveis.
+- **R3 – Flakiness de testes:** existência de testes instáveis (que às vezes passam e às vezes falham sem mudança de código), o que pode gerar métricas inconsistentes de cobertura e *mutation score*.
+- **R4 – Problemas de compatibilidade:** diferenças de versão de JDK, Maven/Gradle, dependências externas quebradas.
+- **R5 – Erros na automação:** bugs nos scripts de coleta/análise podem introduzir erros silenciosos nas métricas.
 
 #### 6.2 Critérios de sucesso globais (go / no-go)
-
-Defina as condições sob as quais o experimento será considerado útil e viável, inclusive critérios que sustentem uma decisão de seguir ou não com mudanças.
+O experimento será considerado bem-sucedido se:
+- **CS1:** For obtida uma amostra mínima de projetos/módulos com métricas válidas (por exemplo, ≥ 30–40 unidades de análise com cobertura e *mutation score* confiáveis).
+- **CS2:** As análises forem suficientes para responder Q1–Q3 com resultados estatisticamente interpretáveis (correlações com intervalos de confiança, regressão com diagnóstico básico).
+- **CS3:** O pipeline de coleta e análise estiver documentado e reprodutível (scripts + *Makefile* + documentação de ambiente).
+- **CS4:** As conclusões estiverem claramente conectadas às evidências, com discussão explícita de ameaças à validade.
 
 #### 6.3 Critérios de parada antecipada (pré-execução)
-
-Descreva situações em que o experimento deve ser adiado ou cancelado antes de começar (falta de recursos críticos, reprovação ética, mudanças de contexto).
+O experimento poderá ser cancelado ou replanejado antes da execução completa se:
+- **CP1:** Após uma fase piloto, menos de um número mínimo de projetos (por exemplo, 10) conseguirem gerar métricas válidas, mesmo após ajustes de ambiente razoáveis.
+- **CP2:** O custo de mutação se mostrar impraticável (por exemplo, tempo total estimado incompatível com o cronograma do TCC), sem possibilidade de mitigação via amostragem estratificada.
+- **CP3:** Problemas técnicos graves e persistentes com ferramentas (JaCoCo, PIT, ambiente) inviabilizarem a medição confiável.
+- **CP4:** Mudanças significativas no escopo do TCC (por decisão acadêmica) tornarem o experimento incoerente com os novos objetivos.
 
 ---
 

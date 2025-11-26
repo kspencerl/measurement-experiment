@@ -440,6 +440,32 @@ Alguns fatores podem influenciar simultaneamente cobertura, mutation score e qua
 
 Esses fatores serão reconhecidos como **ameaças à validade** e discutidos na interpretação dos resultados, mas não serão completamente controlados.
 
+#### 8.8 Tabela de variáveis do estudo
+
+| Código | Tipo de variável           | Nome                           | Descrição resumida                                                                                         | Unidade / origem                         |
+|--------|----------------------------|--------------------------------|------------------------------------------------------------------------------------------------------------|------------------------------------------|
+| V1     | Independente (observada)   | Cobertura por linha (M1)       | Percentual de linhas de código de produção exercitadas pelos testes automatizados.                        | % (relatório JaCoCo)                     |
+| V2     | Dependente                 | *Mutation score* (M2)          | Percentual de mutantes mortos em relação ao total de mutantes válidos gerados pelo PIT.                   | % (relatório PIT)                        |
+| V3     | Variável de contexto       | Tamanho do projeto (M7)        | Aproximação do tamanho do projeto/módulo em linhas de código de produção.                                 | LOC (linhas de código)                   |
+| V4     | Variável de contexto       | Nº de testes automatizados (M8)| Quantidade de casos de teste automatizados presentes no projeto/módulo.                                   | Contagem (métodos de teste)              |
+| V5     | Variável de contexto       | Idade / atividade (M9)         | Indicador de maturidade/atividade do projeto (tempo desde 1º commit ou data do último commit relevante).  | Tempo (anos/meses) ou marca temporal     |
+| V6     | Variável de contexto       | Distribuição de operadores (M10)| Proporção de mutantes por tipo de operador de mutação (aritmético, relacional, lógico etc.).              | % por tipo de operador                   |
+| V7     | Derivada / analítica       | Correlações (M3, M4)           | Força e direção da associação entre cobertura (V1) e *mutation score* (V2).                               | Coeficientes adimensionais (−1 a 1)      |
+| V8     | Derivada / analítica       | Medidas de regressão (M6)      | Estatísticas do modelo de regressão de V2 em função de V1 (coeficientes, R², erros).                      | Diversas (coef., R², erros em pontos %)  |
+
+#### 8.9 Fatores, tratamentos e combinações
+
+| Fator                          | Tipo                       | Níveis / tratamentos                         | Observação                                                                                  |
+|--------------------------------|----------------------------|----------------------------------------------|---------------------------------------------------------------------------------------------|
+| F1 – Técnica / ferramenta      | Fator experimental         | Não se aplica                                | Estudo observacional; não há comparação entre técnicas (por exemplo, A vs B).              |
+| F2 – Projeto analisado         | Fator de bloqueio / contexto | Diferentes projetos/módulos OSS           | Cada projeto/módulo é uma unidade de análise; diferenças são tratadas como variáveis de contexto. |
+| F3 – Faixa de cobertura        | Fator de estratificação    | Baixa, média, alta (faixas definidas a posteriori) | Usado apenas para análise estratificada (por exemplo, quadrantes de discrepância).         |
+| F4 – Faixa de *mutation score* | Fator de estratificação    | Baixo, médio, alto (faixas definidas a posteriori) | Usado para caracterizar quadrantes (alta cobertura/baixo score, etc.).                     |
+
+**Combinações de fatores e tratamentos:**  
+Este estudo **não define tratamentos experimentais clássicos** (como “grupo controle” e “grupo tratamento”).  
+As combinações relevantes são formadas **a posteriori**, pela combinação de faixas de cobertura (F3) e faixas de *mutation score* (F4) para definir quadrantes de discrepância (por exemplo, alta cobertura/baixo *mutation score*).
+
 ---
 
 ### 9. Desenho experimental

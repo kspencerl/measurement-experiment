@@ -264,15 +264,71 @@ O experimento poderá ser cancelado ou replanejado antes da execução completa 
 
 #### 7.1 Modelo conceitual do experimento
 
-Explique, em texto ou esquema, como você acredita que os fatores influenciam as respostas (por exemplo, “técnica A reduz defeitos em relação a B”).
+Neste estudo, assume-se que existe um construto latente de **“efetividade da suíte de testes”** (capacidade real de detectar defeitos relevantes no código de produção). Esse construto não é diretamente observável, mas é aproximado por diferentes métricas:
+
+- **Cobertura de código por linha (M1)** captura principalmente **o alcance estrutural** dos testes: quão bem o código de produção é exercitado.
+- **Mutation score (M2)** captura principalmente **o poder de detecção**, isto é, o quão sensíveis os testes são a pequenas alterações no código (mutantes).
+
+O modelo conceitual parte das seguintes ideias:
+
+- Em muitos contextos, espera-se que **maior cobertura** esteja associada a **maior mutation score**, pois mais partes do código são exercitadas e, potencialmente, verificadas por asserts.
+- No entanto, essa relação pode ser **mediada ou moderada** por fatores de contexto, como:
+  - **Tamanho do projeto (M7)**;
+  - **Número de testes automatizados (M8)**;
+  - **Idade/atividade do projeto (M9)**;
+  - **Distribuição de operadores de mutação (M10)**;
+  - Qualidade estrutural dos testes (por exemplo, presença de *test smells*, não diretamente medida, mas relacionada ao contexto).
+
+Assim, a cobertura (M1) e as variáveis de contexto (M7–M10) são tratadas como **variáveis explicativas/descritoras**, enquanto o mutation score (M2) é tratado como **principal variável de resposta**.  
+
+De forma resumida, o modelo conceitual é:
+
+> **Efetividade real dos testes (latente)**  
+> → influencia tanto **M1 (alcance)** quanto **M2 (detecção)**,  
+> mas **M2** tende a ser um indicador mais direto de detecção de defeitos, enquanto **M1** pode superestimar a efetividade quando testes exercitam o código sem verificações adequadas.  
+
+O estudo busca, portanto, compreender **como M1 e M2 se relacionam empiricamente na prática**, e em quais contextos a cobertura (M1) pode ser usada como *proxy* aceitável de efetividade (M2) e em quais não.
 
 #### 7.2 Hipóteses formais (H0, H1)
 
-Formule explicitamente as hipóteses nulas e alternativas para cada questão principal, incluindo a direção esperada do efeito quando fizer sentido.
+Com base nos objetivos e no modelo conceitual, as principais hipóteses podem ser organizadas em três blocos.
+
+**Bloco 1 – Associação global entre cobertura e mutation score (O1 / Q1.1):**
+
+- **H0₁ (nula):** Não há associação monotônica estatisticamente significativa entre **cobertura de código por linha (M1)** e **mutation score (M2)** em projetos Java de código aberto (ρ ≈ 0).
+- **H1₁ (alternativa):** Existe uma associação monotônica **positiva** e estatisticamente significativa entre **M1** e **M2** (ρ > 0), indicando que projetos com maior cobertura tendem, em média, a apresentar mutation score mais alto.
+
+**Bloco 2 – Magnitude e robustez da associação (O1 / Q1.2, Q1.3; O3 / Q3.1):**
+
+- **H0₂:** A associação observada entre M1 e M2 é fraca (por exemplo, coeficiente de Spearman próximo de zero) e/ou instável, desaparecendo quando removidos outliers ou quando os projetos são estratificados por tamanho (M7) ou número de testes (M8).
+- **H1₂:** A associação entre M1 e M2 permanece **estatisticamente significativa** e de magnitude **não desprezível** (por exemplo, correlação monotônica pelo menos moderada) mesmo após:
+  - remoção de outliers; e  
+  - estratificação por faixas de tamanho do projeto ou tamanho da suíte de testes.
+
+- **H0₃:** Em modelos de regressão linear simples com M2 como variável resposta e M1 como variável explicativa, a cobertura **não explica** uma fração relevante da variabilidade do mutation score (R² ajustado próximo de 0).
+- **H1₃:** Em modelos de regressão linear simples, a cobertura explica **uma fração não trivial** da variabilidade do mutation score (R² ajustado maior que um limiar mínimo definido na análise, por exemplo, > 0,1), indicando algum poder preditivo.
+
+**Bloco 3 – Casos de discrepância e uso da cobertura como proxy (O2 e O4):**
+
+Nesse bloco, as hipóteses são mais **exploratórias/descritivas**, focadas em verificar se certos padrões de discrepância ocorrem com frequência suficiente para serem relevantes.
+
+- **H0₄:** Projetos com alta cobertura e baixo mutation score (quadrante QH-L) ou com baixa/média cobertura e mutation score alto (quadrante QL-H) são raros ou inexistentes, de modo que a cobertura pode ser usada, na prática, como proxy confiável de efetividade na maioria dos casos.
+- **H1₄:** Existe uma **proporção não desprezível** de projetos em quadrantes discrepantes (QH-L e/ou QL-H), indicando que:
+  - alta cobertura não garante alta efetividade (mutation score), e  
+  - em alguns casos, mutation score relativamente alto pode ser obtido com cobertura não tão elevada.
+
+Essas hipóteses orientam a análise, mas o estudo mantém caráter predominantemente **observacional e exploratório**, evitando conclusões causais fortes.
 
 #### 7.3 Nível de significância e considerações de poder
 
-Defina o nível de significância (por exemplo, α = 0,05) e comente o que se espera em termos de poder estatístico, relacionando-o ao tamanho de amostra planejado.
+- O nível de significância adotado será **α = 0,05** para os testes estatísticos principais (por exemplo, testes de significância para coeficientes de correlação e parâmetros de regressão).
+- Intervalos de confiança (por exemplo, de 95%) serão estimados via métodos analíticos e/ou *bootstrap* para quantificar a incerteza das estimativas (ρ, r, parâmetros de regressão, R², proporções em quadrantes, etc.).
+- Não será realizado, a priori, um cálculo formal de **poder estatístico** baseado em tamanho de efeito esperado, pois:
+  - o estudo é observacional e depende de quantos projetos elegíveis conseguirem ser processados com sucesso;  
+  - a magnitude real da associação entre M1 e M2 em projetos OSS ainda não é bem estabelecida na literatura.
+- Ainda assim, busca-se atingir uma amostra mínima de **30–40 projetos/módulos** com métricas válidas (CS1), o que tende a ser suficiente para:
+  - estimar correlações com alguma precisão (intervalos de confiança informativos); e  
+  - ajustar modelos de regressão simples com número moderado de pontos, reconhecendo que resultados serão interpretados com cautela e ênfase em **tamanho de efeito** e **intervalos de confiança**, não apenas em significância estatística (p-values).
 
 ---
 
@@ -280,31 +336,109 @@ Defina o nível de significância (por exemplo, α = 0,05) e comente o que se es
 
 #### 8.1 Objetos de estudo
 
-Descreva o que será efetivamente manipulado ou analisado (módulos de código, requisitos, tarefas, casos de teste, issues, etc.).
+Os **objetos de estudo** deste experimento são:
+
+- **Projetos ou módulos Java de código aberto** hospedados no GitHub, que:
+  - utilizem Maven ou Gradle como ferramenta de *build*;
+  - possuam testes automatizados configurados;
+  - consigam compilar e executar testes com sucesso no ambiente padronizado definido;
+  - permitam a geração de relatórios de cobertura (JaCoCo) e de teste de mutação (PIT).
+
+Cada **projeto/módulo** é tratado como uma **unidade de análise**, para a qual serão coletadas as métricas M1–M10 descritas na Seção 3.4.
 
 #### 8.2 Sujeitos / participantes (visão geral)
 
-Caracterize em alto nível quem serão os participantes (desenvolvedores, testadores, estudantes, etc.), sem ainda entrar em detalhes de seleção.
+- Não há **participantes humanos** neste estudo.
+- A unidade de observação são **artefatos de software** (projetos/módulos de código aberto), executados em ambiente controlado para coleta de métricas.
+- Quando necessário, metadados de projetos (por exemplo, datas de *commits*, número de estrelas, atividade recente) serão obtidos via API do GitHub ou análise do histórico de *commits*, mas sem contato com mantenedores.
 
 #### 8.3 Variáveis independentes (fatores) e seus níveis
 
-Liste os fatores que serão manipulados (por exemplo, técnica, ferramenta, processo) e indique os níveis de cada um (A/B, X/Y, alto/baixo).
+Por se tratar de estudo observacional correlacional, não há fatores manipulados no sentido clássico de “tratamento A vs B”. Em vez disso, há **variáveis explicativas/descritoras** observadas, das quais se destacam:
+
+- **Cobertura de código por linha (M1)**  
+  - Tipo: contínua (0–100%).  
+  - Nível: valor percentual por projeto/módulo.  
+  - Em algumas análises poderá ser categorizada em faixas, por exemplo:  
+    - baixa (< 60%),  
+    - média (60%–80%),  
+    - alta (> 80%).
+
+- **Tamanho do projeto (M7 – LOC)**  
+  - Tipo: contínua (contagem de linhas de código).  
+  - Pode ser usada em faixas (por exemplo, pequenos, médios, grandes) para análises estratificadas.
+
+- **Número de testes automatizados (M8)**  
+  - Tipo: contínua (contagem).  
+  - Pode ser categorizada para formar estratos de tamanho da suíte de testes.
+
+- **Idade / atividade do projeto (M9)**  
+  - Tipo: contínua (tempo desde o primeiro *commit* ou medida de atividade).  
+  - Pode ser considerada como indicador de maturidade.
+
+- **Distribuição de operadores de mutação (M10)**  
+  - Tipo: vetorial (proporções por tipo de operador).  
+  - Pode ser resumida em indicadores agregados, caso necessário (por exemplo, predominância de certos operadores).
+
+Essas variáveis funcionam como **fatores de contexto** que ajudam a interpretar a relação entre cobertura (M1) e mutation score (M2).
 
 #### 8.4 Tratamentos (condições experimentais)
 
-Descreva claramente cada condição de experimento (grupo controle, tratamento 1, tratamento 2, etc.) e o que distingue uma da outra.
+Não há **tratamentos** no sentido de grupos controle vs grupos tratados, pois:
+
+- o estudo não introduz intervenções nos projetos;
+- não são comparadas técnicas alternativas de teste ou ferramentas distintas.
+
+Entretanto, para fins analíticos, alguns **agrupamentos derivados** serão utilizados, tais como:
+
+- **Quadrantes de discrepância (M5)**:
+  - QH-L: alta cobertura (por exemplo, ≥ 80%) e baixo mutation score (< 60%);
+  - QL-H: cobertura baixa/média e mutation score alto;
+  - outros quadrantes intermediários.
+
+- **Faixas de cobertura (derivadas de M1)**:
+  - baixa / média / alta.
+
+- **Faixas de tamanho ou número de testes (derivadas de M7 e M8)**.
+
+Esses agrupamentos **não são tratamentos** atribuídos aos projetos, mas categorias construídas a partir dos dados para facilitar a análise de padrões.
 
 #### 8.5 Variáveis dependentes (respostas)
 
-Informe as medidas de resultado que você observará (por exemplo, número de defeitos, esforço em horas, tempo de conclusão, satisfação).
+As principais **variáveis de resposta** são:
+
+- **Mutation score global (M2)**  
+  - Principal métrica de efetividade dos testes analisada neste estudo.  
+  - Usada como variável resposta nos modelos de regressão (em função de M1) e nas análises de correlação.
+
+- **Classificação em quadrantes de discrepância (M5)**  
+  - Interpretada como resposta categórica em algumas análises (por exemplo, proporção de projetos em cada quadrante).
+
+- **Parâmetros e resíduos de modelos de regressão (M6)**  
+  - Em análises mais avançadas, resíduos (diferença entre mutation score observado e predito) podem ser tratados como resposta para investigar viés sistemático em certos contextos (por exemplo, projetos muito grandes ou muito antigos).
 
 #### 8.6 Variáveis de controle / bloqueio
 
-Liste fatores que você não está estudando diretamente, mas que serão mantidos constantes ou usados para formar blocos (por exemplo, experiência, tipo de tarefa).
+Alguns fatores são tratados como **variáveis de controle** ou **restrições de inclusão**, com o objetivo de reduzir variabilidade indesejada:
+
+- **Linguagem de programação:** apenas projetos com código de produção em Java são incluídos.
+- **Ferramentas de build:** apenas Maven/Gradle, que permitem integração consistente com JaCoCo e PIT.
+- **Ambiente de execução:** versões controladas de JDK, Maven/Gradle, JaCoCo e PIT, mantidas constantes ao longo da coleta.
+- **Critérios de elegibilidade dos projetos:** repositórios que não *buildam* ou não executam testes de forma estável são excluídos.
+
+Quando pertinente, variáveis como **tamanho do projeto (M7)** e **número de testes (M8)** podem ser usadas para formar **estratos analíticos** (por exemplo, comparar correlações em projetos pequenos vs grandes), funcionando como uma forma de “bloqueio” a posteriori.
 
 #### 8.7 Possíveis variáveis de confusão conhecidas
 
-Identifique fatores que podem distorcer os resultados (como diferenças de contexto, motivação ou carga de trabalho) e que você pretende monitorar.
+Alguns fatores podem influenciar simultaneamente cobertura, mutation score e qualidade real dos testes, sem serem plenamente observados ou controlados:
+
+- **Qualidade do design de testes:** presença de *test smells*, uso de bons oráculos, clareza dos cenários de teste.
+- **Domínio de aplicação e criticidade:** sistemas mais críticos podem receber mais atenção em testes, independentemente de cobertura aparente.
+- **Experiência e práticas da equipe:** padrões de contribuição, revisões de código, cultura de qualidade.
+- **Configuração e tempo de execução do PIT:** timeout, conjuntos de mutantes eventualmente desabilitados em certos projetos.
+- **Flakiness de testes:** instabilidade de testes pode afetar tanto cobertura quanto mutation score, mesmo com código estável.
+
+Esses fatores serão reconhecidos como **ameaças à validade** e discutidos na interpretação dos resultados, mas não serão completamente controlados.
 
 ---
 
@@ -312,19 +446,72 @@ Identifique fatores que podem distorcer os resultados (como diferenças de conte
 
 #### 9.1 Tipo de desenho (completamente randomizado, blocos, fatorial, etc.)
 
-Indique qual tipo de desenho será utilizado e justifique brevemente por que ele é adequado ao problema e às restrições.
+O estudo adota um **desenho observacional, de natureza correlacional, baseado em dados já existentes de projetos de código aberto**, caracterizado por:
+
+- **Ausência de manipulação de fatores** ou aplicação de tratamentos;
+- **Coleta de dados em projetos já existentes**, a partir de sua execução em ambiente controlado;
+- **Análise estatística** baseada em correlação, regressão e categorização em quadrantes.
+
+Não se trata, portanto, de um experimento clássico com grupos controle e tratamentos randomizados, mas de um **estudo empírico quantitativo** voltado a identificar padrões de associação entre métricas (M1 e M2) em um corpus de projetos OSS.
 
 #### 9.2 Randomização e alocação
 
-Explique o que será randomizado (sujeitos, tarefas, ordem de tratamentos) e como a randomização será feita na prática (ferramentas, procedimentos).
+Como não há **tratamentos atribuídos**, não existe randomização de participantes em grupos no sentido tradicional. Ainda assim:
+
+- A **ordem de processamento dos projetos** nos scripts (por exemplo, pipeline de *build*, testes, coleta de métricas) poderá ser randomizada apenas para:
+  - distribuir carga computacional de forma mais homogênea; e  
+  - reduzir a chance de efeitos sistemáticos de ordem (por exemplo, interrupções no meio de uma sequência sempre envolvendo os mesmos projetos).
+- Nas análises estatísticas com *bootstrap*, haverá **randomização de reamostragens** com reposição a partir dos dados coletados, mas isso é um procedimento estatístico interno, não um aspecto do desenho experimental em si.
+
+Em resumo, **não há alocação aleatória de tratamentos**, apenas uso de randomização em etapas internas (processamento e reamostragem) para melhorar robustez das estimativas.
 
 #### 9.3 Balanceamento e contrabalanço
 
-Descreva como você garantirá que os grupos fiquem comparáveis (balanceamento) e como lidará com efeitos de ordem ou aprendizagem (contrabalanço).
+Como o estudo:
+
+- não envolve participantes humanos,  
+- não atribui tarefas em diferentes ordens,  
+- e não compara diretamente técnicas concorrentes sob condições controladas,
+
+não se aplicam, de forma clássica, estratégias de **contrabalanço de ordem** (por exemplo, alternar sequência de tratamentos).
+
+O **balanceamento** relevante neste contexto é:
+
+- **Balancear o corpus** de projetos de forma a incluir:
+  - diferentes tamanhos (M7),
+  - quantidades variadas de testes (M8),
+  - graus distintos de popularidade/atividade (M9),
+  reconhecendo, porém, que a amostra é **não probabilística** e sujeita a viés de seleção.
+- Ao analisar resultados estratificados (por exemplo, pequenas vs grandes bases de código), observar se o número de projetos em cada estrato é suficiente para análises comparativas básicas.
+
+Esse balanceamento é, portanto, **analítico e descritivo**, não decorrente de alocação controlada.
 
 #### 9.4 Número de grupos e sessões
 
-Informe quantos grupos existirão e quantas sessões ou rodadas cada sujeito ou grupo irá executar, com uma breve justificativa.
+- **Grupos analíticos previstos:**
+  - Grupos derivados de **quadrantes de discrepância** (M5), como QH-L, QL-H e demais quadrantes.
+  - Possíveis estratos por:
+    - faixas de cobertura (baixa/média/alta),
+    - tamanho do projeto (pequeno/médio/grande),
+    - tamanho da suíte de testes (poucos/muitos testes).
+
+Esses grupos **não são grupos de tratamento**, mas sim **grupos formados a posteriori** para fins de análise.
+
+- **Sessões ou rodadas de execução:**
+  - Cada projeto/módulo será, em princípio, executado pelo menos **uma vez** para:
+    - *build* + testes com cobertura (JaCoCo);  
+    - execução de mutação (PIT);  
+    - extração de métricas.
+  - Podem existir **rodadas adicionais** para:
+    - re-execução em caso de falhas de ambiente ou flakiness;  
+    - ajustes de configuração (por exemplo, de timeout do PIT) durante uma fase piloto.
+  - Essas rodadas não configuram sessões experimentais distintas, mas **passos técnicos de coleta** visando obter métricas estáveis.
+
+Em síntese, o desenho experimental é **simples e observacional**, com foco em:
+
+- definir claramente a população-alvo (projetos Java OSS com testes);
+- aplicar um pipeline padronizado de coleta de métricas;  
+- analisar relações entre essas métricas com métodos estatísticos adequados.
 
 ---
 

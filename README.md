@@ -756,6 +756,7 @@ O protocolo operacional pode ser descrito, em alto nível, na sequência de pass
 O fluxo operacional do experimento, destacando instrumentos, variáveis, métricas e stakeholders, pode ser representado pelo seguinte fluxograma (em sintaxe Mermaid):
 
 ```mermaid
+flowchart TD
   A["Planejar estudo: definir O1–O4 e Q1–Q4; stakeholders: autora, orientador, banca"]
   B["Configurar ambiente: JDK, Maven/Gradle, JaCoCo, PIT, Python e scripts em Python/Shell"]
   C["Selecionar projetos candidatos via GitHub; coletar metadados (estrelas, atividade)"]
@@ -768,6 +769,14 @@ O fluxo operacional do experimento, destacando instrumentos, variáveis, métric
   J["Realizar análises estatísticas: correlação, regressão e quadrantes de discrepância"]
   K["Interpretar resultados considerando ameaças à validade e contexto dos projetos"]
   L["Comunicar achados no TCC, para orientador, banca e comunidade OSS/QA"]
+
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  E --> F
+  F -- "Não" --> G --> E
+  F -- "Sim" --> H --> I --> J --> K --> L
 ```
 
 #### 11.4 Plano de piloto (se haverá piloto, escopo e critérios de ajuste)

@@ -545,27 +545,84 @@ Em síntese, o desenho experimental é **simples e observacional**, com foco em:
 
 #### 10.1 População-alvo
 
-Descreva qual é a população real que você deseja representar com o experimento (por exemplo, “desenvolvedores Java de times de produto web”).
+Neste experimento, a população-alvo não é composta por indivíduos humanos, mas por **projetos (ou módulos) Java de código aberto com testes automatizados**, mantidos em repositórios públicos (principalmente no GitHub) que:
+
+- utilizam **Java** como linguagem principal de produção;
+- empregam **Maven** ou **Gradle** como ferramentas de *build*;
+- possuem **suítes de testes automatizados** configuradas e executáveis;
+- são desenvolvidos e mantidos em contextos reais (bibliotecas, frameworks, serviços e aplicações).
+
+Conceitualmente, essa população representa o conjunto de **projetos Java OSS com práticas de teste automatizado comparáveis às de times de produto industriais**, ainda que com grande variabilidade de tamanho, idade, domínio e nível de maturidade.
 
 #### 10.2 Critérios de inclusão de sujeitos
 
-Especifique os requisitos mínimos para um participante ser elegível (experiência, conhecimento, papel, disponibilidade, etc.).
+Neste estudo, os “sujeitos” são os **projetos/módulos de software**, e não há participação de pessoas. Um projeto/módulo será incluído se:
+
+- estiver em **repositório público** (por exemplo, no GitHub), acessível via HTTPS;
+- tiver **Java como linguagem principal** de código de produção;
+- utilizar **Maven** (`pom.xml`) ou **Gradle** (`build.gradle` / `build.gradle.kts`) como ferramenta de *build*;
+- possuir dependências de teste claramente configuradas (por exemplo, **JUnit**, TestNG);
+- conseguir:
+  - **compilar com sucesso** no ambiente padronizado (JDK e ferramentas configuradas); e  
+  - **executar os testes automatizados** via Maven/Gradle, produzindo relatórios de teste consistentes;
+- permitir a integração e execução de:
+  - **JaCoCo** para obtenção de **cobertura por linha (M1)**;  
+  - **PIT** para obtenção de **_mutation score_ (M2)**;
+- possuir, ao menos, um tamanho mínimo de código e testes (não ser apenas um *hello world* ou exemplo trivial), de forma a tornar as métricas coletadas significativas.
 
 #### 10.3 Critérios de exclusão de sujeitos
 
-Liste condições que impedem participação (conflitos de interesse, falta de skills essenciais, restrições legais ou éticas).
+Um projeto/módulo será excluído se:
+
+- **não compilar** ou **não executar testes** de forma confiável no ambiente padronizado, mesmo após ajustes razoáveis;
+- **não possuir testes automatizados executáveis**, ainda que haja arquivos de teste aparentemente presentes;
+- apresentar **incompatibilidades graves** com JaCoCo ou PIT que impeçam a geração de relatórios de cobertura e de mutação;
+- se revelar um projeto:
+  - extremamente **trivial ou didático**, com relevância prática muito limitada; ou  
+  - um **fork quase idêntico** de outro projeto já incluído, de modo que se tornaria uma duplicação de métricas;
+- apresentar comportamento de testes excessivamente **instável (flaky)**, produzindo resultados de cobertura e *mutation score* inconsistentes, mesmo após múltiplas execuções;
+- depender de infraestrutura externa não reproduzível (por exemplo, serviços externos sem *mock* ou *test double* adequado) a ponto de inviabilizar *build* e execução de testes.
 
 #### 10.4 Tamanho da amostra planejado (por grupo)
 
-Defina quantos participantes você pretende ter no total e em cada grupo, relacionando a decisão com poder, recursos e contexto.
+- O plano inicial é selecionar aproximadamente **50–60 projetos/módulos candidatos**, seguindo os critérios de inclusão.
+- Após a aplicação dos critérios de exclusão (falhas de *build*, ausência de testes, problemas de instrumentação), espera-se obter uma amostra final de pelo menos **30–40 unidades de análise** com métricas válidas de **cobertura por linha (M1)** e **_mutation score_ (M2)**.
+- Não há **grupos de tratamento** pré-definidos; os “grupos” utilizados nas análises (por exemplo, quadrantes de discrepância ou faixas de cobertura/mutation score) serão **derivados a posteriori** a partir das métricas coletadas (M1–M2, M7–M10).
 
 #### 10.5 Método de seleção / recrutamento
 
-Explique como os participantes serão escolhidos (amostra de conveniência, sorteio, convite aberto, turma de disciplina, time específico).
+A seleção dos projetos seguirá uma abordagem de **amostra de conveniência estruturada**, alinhada ao cronograma e aos recursos disponíveis:
+
+1. **Busca inicial na API do GitHub** (ou interface web), utilizando filtros como:
+   - `language:Java`;
+   - limiar mínimo de popularidade (número de *stars* e/ou *forks*);
+   - atividade recente (por exemplo, *commits* nos últimos N meses).
+
+2. **Filtragem manual** dos resultados para:
+   - remover projetos evidentemente triviais, didáticos ou *templates*;
+   - remover *forks* sem modificações relevantes.
+
+3. **Seleção de candidatos** visando alguma diversidade em:
+   - tamanho do código (M7 – LOC);  
+   - tamanho da suíte de testes (M8 – número de testes);  
+   - domínios de aplicação (bibliotecas, aplicações, frameworks).
+
+4. **Registro dos candidatos** em uma **planilha/CSV de controle**, contendo:
+   - URL do repositório;
+   - informações básicas (stars, linguagem, data do último *commit*);
+   - status de *build/test* e eventuais anotações.
+
+Não há recrutamento de participantes humanos; a “amostra” é composta por artefatos de software selecionados a partir de repositórios públicos.
 
 #### 10.6 Treinamento e preparação dos sujeitos
 
-Descreva qual treinamento ou material preparatório será fornecido para nivelar entendimento e reduzir vieses por falta de conhecimento.
+- Não é necessário treinamento de “sujeitos”, pois não há indivíduos participando ativamente.
+- Em compensação, há uma **preparação de ambiente e de instrumentos**, que inclui:
+  - documentação clara do ambiente de execução (versão do JDK, Maven/Gradle, JaCoCo, PIT);
+  - instruções padronizadas em um **README** para execução dos scripts de coleta;
+  - uma **fase piloto** (Seção 11.4) para:
+    - validar o *pipeline* (*build* + testes + cobertura + mutação);
+    - ajustar *timeouts*, configurações do PIT e critérios de inclusão/exclusão conforme problemas detectados.
 
 ---
 
@@ -573,19 +630,187 @@ Descreva qual treinamento ou material preparatório será fornecido para nivelar
 
 #### 11.1 Instrumentos de coleta (questionários, logs, planilhas, etc.)
 
-Liste todos os instrumentos que serão usados para coletar dados (arquivos, formulários, scripts, ferramentas), com uma breve descrição do papel de cada um.
+Os principais instrumentos de coleta e consolidação de dados serão:
+
+- **Scripts de automação (shell, Makefile, Python):**
+  - script de descoberta e registro de repositórios candidatos;
+  - script de *clone* e atualização de repositórios;
+  - script de execução de *build* e testes com **JaCoCo**, gerando relatórios de cobertura;
+  - script de execução de **PIT**, gerando relatórios de mutantes;
+  - script de *parsing* dos relatórios JaCoCo/PIT (XML/HTML) e geração de **arquivos CSV** com as métricas:
+    - M1 – cobertura por linha;
+    - M2 – *mutation score*;
+    - M7–M10 – variáveis de contexto (LOC, nº de testes, idade, operadores de mutação).
+
+- **Planilhas / arquivos CSV:**
+  - **Dataset principal**: um CSV com uma linha por projeto/módulo e colunas para M1–M10, além de metadados.
+  - **Planilha de controle de execução**: registro de:
+    - status de *build/test*;
+    - erros encontrados;
+    - motivos de exclusão de projetos.
+
+- **Ambiente de análise estatística (notebooks Python):**
+  - *Notebooks* Jupyter (ou scripts Python) para:
+    - leitura e limpeza do dataset;
+    - análises descritivas, correlação, regressão, *bootstrap*;
+    - geração de gráficos de dispersão, boxplots, histogramas, etc.
+
+- **Ferramentas de apoio:**
+  - **JaCoCo** – instrumento de medição de cobertura de código por linha.
+  - **PIT** – ferramenta de *mutation testing* para Java.
+  - **API do GitHub** – consulta a metadados (M9 e outros sinais de atividade).
+
+Não são usados questionários, entrevistas ou formulários, dada a ausência de participantes humanos.
 
 #### 11.2 Materiais de suporte (instruções, guias)
 
-Descreva as instruções escritas, guias rápidos, slides ou outros materiais que serão fornecidos a participantes e administradores do experimento.
+Serão produzidos e mantidos os seguintes materiais de suporte:
+
+- **README do experimento** (em Markdown):
+  - requisitos de ambiente (sistema operacional, JDK, Maven/Gradle, Python, bibliotecas);
+  - instruções de instalação e configuração;
+  - comandos padrão para:
+    - executar *build* + testes;
+    - rodar JaCoCo e PIT;
+    - consolidar métricas em CSV.
+
+- **Guia rápido de troubleshooting**:
+  - erros comuns de *build* (dependências faltando, versões incompatíveis);
+  - problemas de configuração com JaCoCo e PIT;
+  - estratégias de mitigação (por exemplo, aumentar *timeout*, ajustar configurações de plugin).
+
+- **Comentários e docstrings nos scripts**:
+  - descrição dos parâmetros;
+  - explicação de variáveis de ambiente;
+  - referências a onde os relatórios e CSVs são gerados.
+
+- **Este documento de plano experimental**:
+  - detalhamento de objetivos, variáveis, métricas, escopo e ameaças à validade;
+  - fluxograma operacional (Seção 11.3);
+  - plano de análise de dados (Seção 12), servindo como referência para execução e interpretação.
 
 #### 11.3 Procedimento experimental (protocolo – visão passo a passo)
 
-Escreva, em ordem, o que acontecerá na operação (do convite ao encerramento), de modo que alguém consiga executar o experimento seguindo esse roteiro.
+O protocolo operacional pode ser descrito, em alto nível, na sequência de passos abaixo:
+
+1. **Planejamento conceitual e alinhamento com stakeholders**  
+   - Revisar objetivos (O1–O4), questões de pesquisa (Q1–Q4) e métricas (M1–M10).  
+   - Alinhar expectativas com **autora, orientador e banca** (stakeholders principais).
+
+2. **Configuração do ambiente e dos instrumentos**  
+   - Instalar/configurar JDK, Maven/Gradle, JaCoCo, PIT, Python e bibliotecas necessárias.  
+   - Validar os scripts de automação (*Makefile*, *shell scripts*, scripts Python).  
+   - Registrar versão do ambiente (para reprodutibilidade).
+
+3. **Descoberta e registro de projetos candidatos**  
+   - Utilizar a API do GitHub para listar projetos Java com testes e atividade recente.  
+   - Aplicar filtros manuais (exclusão de projetos triviais, *forks* sem modificações).  
+   - Registrar candidatos em planilha/CSV: URL, *stars*, data do último *commit*, etc.
+
+4. **Fase piloto (validação do pipeline)**  
+   - Selecionar de 5 a 10 projetos da lista de candidatos.  
+   - Para cada projeto piloto:
+     - realizar *clone* local;
+     - executar *build* + testes;
+     - executar testes com JaCoCo ativado, gerando relatórios de cobertura;
+     - configurar e executar PIT, gerando relatórios de mutação;
+     - extrair métricas M1–M2 e M7–M10 para um CSV de piloto.
+   - Ajustar scripts, *timeouts* e critérios de inclusão/exclusão conforme problemas encontrados.
+
+5. **Execução principal do pipeline de coleta**  
+   - Para cada projeto elegível da lista:
+     1. **Clone/atualização** do repositório local;  
+     2. **Build + testes com JaCoCo**, coletando cobertura (M1);  
+     3. **Execução de PIT**, coletando *mutation score* (M2) e distribuição de operadores (M10);  
+     4. **Coleta de variáveis de contexto** (M7 – LOC, M8 – nº de testes, M9 – idade/atividade, etc.);  
+     5. **Exportação das métricas** e metadados para o CSV principal;  
+     6. Registro de **logs** e anotações em planilha de controle (incluindo motivos de falha ou exclusão).
+
+6. **Consolidação e limpeza dos dados**  
+   - Unificar todos os CSVs gerados em um dataset consolidado (um registro por projeto/módulo).  
+   - Verificar consistência de intervalos (por exemplo, M1 e M2 entre 0 e 100%) e tipos de dados.  
+   - Identificar dados faltantes e potenciais *outliers*, registrando essas ocorrências.
+
+7. **Análise descritiva inicial**  
+   - Calcular estatísticas descritivas (média, mediana, quartis, desvio padrão) para M1–M2 e M7–M10.  
+   - Gerar gráficos de dispersão, histogramas e boxplots para entender distribuição e possíveis *outliers*.
+
+8. **Análises de correlação e regressão**  
+   - Calcular correlação de **Spearman** (principal) e de **Pearson** (quando adequado) entre M1 e M2.  
+   - Ajustar modelos de **regressão linear simples** com M2 em função de M1, obtendo M6 (coeficientes, R², RMSE, MAE).  
+   - Aplicar *bootstrap* para obter intervalos de confiança de ρ, r e dos parâmetros de regressão.
+
+9. **Análise de quadrantes e discrepâncias**  
+   - Definir faixas de M1 e M2 para construir quadrantes de discrepância (M5).  
+   - Quantificar a proporção de projetos em cada quadrante (especialmente alta cobertura/baixo *mutation score* e vice-versa).  
+   - Selecionar alguns projetos representativos para inspeção qualitativa da estrutura de testes (por exemplo, presença de *test smells*).
+
+10. **Integração, interpretação e comunicação dos resultados**  
+    - Integrar evidências quantitativas (correlação, regressão, quadrantes) e observações qualitativas de casos estudados.  
+    - Relacionar achados com objetivos O1–O4 e hipóteses H0/H1.  
+    - Discutir implicações práticas para stakeholders (pesquisadores, profissionais de QA, mantenedores OSS).  
+    - Documentar ameaças à validade e oportunidades de trabalhos futuros.
+
+##### Fluxograma do passo a passo do experimento
+
+O fluxo operacional do experimento, destacando instrumentos, variáveis, métricas e stakeholders, pode ser representado pelo seguinte fluxograma (em sintaxe Mermaid):
+
+```mermaid
+  A["Planejar estudo: definir O1–O4 e Q1–Q4; stakeholders: autora, orientador, banca"]
+  B["Configurar ambiente: JDK, Maven/Gradle, JaCoCo, PIT, Python e scripts em Python/Shell"]
+  C["Selecionar projetos candidatos via GitHub; coletar metadados (estrelas, atividade)"]
+  D["Registrar projetos candidatos em planilha ou CSV de rastreamento"]
+  E["Executar fase piloto em 5–10 projetos; coletar métricas M1, M2, M7–M10"]
+  F{"Pipeline estável e métricas válidas?"}
+  G["Ajustar scripts, timeouts e critérios de inclusão/exclusão; atualizar README e guia operacional"]
+  H["Executar pipeline completo: build, testes, JaCoCo e PIT em todos os projetos elegíveis"]
+  I["Consolidar métricas em CSV principal com M1–M10"]
+  J["Realizar análises estatísticas: correlação, regressão e quadrantes de discrepância"]
+  K["Interpretar resultados considerando ameaças à validade e contexto dos projetos"]
+  L["Comunicar achados no TCC, para orientador, banca e comunidade OSS/QA"]
+```
 
 #### 11.4 Plano de piloto (se haverá piloto, escopo e critérios de ajuste)
 
-Indique se um piloto será realizado, com que participantes e objetivos, e defina que tipo de ajuste do protocolo poderá ser feito com base nesse piloto.
+Haverá uma **fase piloto** antes da coleta completa, com as características abaixo.
+
+**Escopo do piloto**
+
+- Selecionar entre **5 e 10 projetos/módulos** da lista de candidatos, tentando variar:
+  - tamanho (LOC – M7);
+  - número de testes automatizados (M8);
+  - nível de atividade/idade (M9).
+- Para cada projeto da fase piloto:
+  - realizar **clone** do repositório;
+  - executar **build + testes** com JaCoCo ativado, gerando cobertura (M1);
+  - executar **PIT**, gerando *mutation score* (M2) e distribuição de operadores (M10);
+  - coletar variáveis de contexto (M7–M9);
+  - consolidar métricas em um **CSV de piloto**.
+
+**Objetivos do piloto**
+
+- Verificar se:
+  - o ambiente (JDK, Maven/Gradle, JaCoCo, PIT) está corretamente configurado;
+  - os scripts de automação (Makefile, *shell scripts*, Python) funcionam de ponta a ponta;
+  - os relatórios de JaCoCo e PIT são gerados de forma consistente para diferentes projetos;
+  - o **tempo médio de execução por projeto** é compatível com o cronograma do TCC.
+- Identificar antecipadamente:
+  - tipos recorrentes de falha de *build/test*;
+  - incompatibilidades com versões de ferramentas;
+  - ajustes necessários em parâmetros do PIT (por exemplo, *timeout*, operadores habilitados).
+
+**Critérios de ajuste com base no piloto**
+
+- Caso a **taxa de falha** em *build/test* seja muito alta:
+  - refinar **critérios de inclusão/exclusão** de projetos;
+  - considerar ajustes moderados de ambiente (por exemplo, instalar versão adicional de JDK).
+- Se o **tempo de execução de mutação** por projeto for impraticável:
+  - reduzir o escopo da mutação (por módulo/pacote ou amostragem de classes);
+  - ajustar configurações do PIT (por exemplo, *timeout*, conjunto de operadores).
+- Em caso de **erros de instrumentação/coleta** (scripts):
+  - corrigir os scripts;
+  - reexecutar o piloto com o subconjunto necessário, até obter métricas estáveis.
+- Todas as decisões de ajuste (critérios, configurações, parâmetros) serão **documentadas** no próprio plano de experimento e/ou no README do repositório.
 
 ---
 
@@ -593,19 +818,143 @@ Indique se um piloto será realizado, com que participantes e objetivos, e defin
 
 #### 12.1 Estratégia geral de análise (como responderá às questões)
 
-Explique, em alto nível, como os dados coletados serão usados para responder cada questão de pesquisa ou de negócio.
+A análise de dados será orientada pelos objetivos O1–O4 e pelas questões GQM, seguindo os passos:
+
+1. **Análise descritiva inicial**
+   - Resumir M1 (cobertura) e M2 (*mutation score*) por meio de:
+     - média, mediana, quartis, mínimo, máximo e desvio padrão;
+     - histogramas e boxplots para identificar assimetrias e possíveis *outliers*.
+   - Descrever variáveis de contexto M7–M10 (tamanho, nº de testes, idade/atividade, operadores de mutação).
+
+2. **Associação entre cobertura e efetividade (O1)**
+   - Construir gráficos de dispersão de **M1 vs M2**.
+   - Calcular correlações (Spearman – M3; Pearson – M4, quando apropriado).
+   - Repetir análises em subgrupos (por exemplo, faixas de tamanho de projeto ou nº de testes).
+
+3. **Casos de discrepância (O2)**
+   - Definir faixas para M1 e M2 e classificar projetos em **quadrantes de discrepância (M5)**.
+   - Quantificar a proporção de projetos em:
+     - alta cobertura / baixo *mutation score*;
+     - baixa/média cobertura / alto *mutation score*.
+   - Selecionar casos representativos desses quadrantes para inspeção qualitativa (estrutura de testes, possíveis *test smells*).
+
+4. **Capacidade preditiva da cobertura (O3)**
+   - Ajustar modelos de **regressão linear simples** com M2 (resposta) em função de M1 (explicativa).
+   - Avaliar o ajuste com base em M6 (coeficientes, R² ajustado, RMSE, MAE).
+   - Analisar resíduos em função de M7–M9 (tamanho, nº de testes, idade) para investigar padrões sistemáticos.
+
+5. **Uso da cobertura como *proxy* (O4)**
+   - Integrar evidências de:
+     - correlação (M3, M4),
+     - regressão (M6),
+     - quadrantes de discrepância (M5),
+     - variáveis de contexto (M7–M10).
+   - Derivar recomendações práticas sobre:
+     - quando a cobertura se comporta como *proxy* razoável de efetividade;
+     - quando ela é insuficiente, exigindo apoio de *mutation score* e/ou outras métricas.
 
 #### 12.2 Métodos estatísticos planejados
 
-Liste os principais testes ou técnicas estatísticas que pretende usar (por exemplo, t-teste, ANOVA, testes não paramétricos, regressão).
+Os principais métodos estatísticos a serem utilizados são:
+
+- **Estatística descritiva**
+  - Medidas de posição (média, mediana, quartis) e dispersão (desvio padrão, intervalo interquartil) para M1, M2 e variáveis de contexto.
+  - Visualizações:
+    - histogramas e boxplots de M1 e M2;
+    - gráficos de dispersão de M1 vs M2.
+
+- **Análise de correlação**
+  - **Correlação de Spearman (ρ – M3)**:
+    - medida principal, adequada para relações monotônicas e robusta a não linearidades moderadas;
+    - utilizada globalmente e por estratos (por tamanho de projeto, nº de testes).
+  - **Correlação de Pearson (r – M4)**:
+    - aplicada quando a relação parecer aproximadamente linear;
+    - acompanhada de verificação básica de suposições (distribuição de resíduos).
+
+- **Modelagem de regressão linear simples**
+  - Modelo:  
+    - M2 (*mutation score*) = β₀ + β₁ · M1 (cobertura por linha) + ε
+  - Extração de M6:
+    - coeficientes β₀, β₁;
+    - R² e R² ajustado;
+    - RMSE e MAE.
+  - Análise de resíduos:
+    - verificar padrões sistemáticos (por exemplo, erros maiores em certas faixas de M1);
+    - avaliar indícios de heterocedasticidade.
+
+- **Análises por quadrantes e estratos**
+  - Definição de faixas para M1 e M2 (baixa/média/alta) e construção de quadrantes (M5).
+  - Cálculo da proporção de projetos em cada quadrante.
+  - Comparações descritivas entre quadrantes quanto a M7, M8, M9, M10.
+
+- **Reamostragem (bootstrap)**
+  - Aplicação de **_bootstrap_** para:
+    - estimar intervalos de confiança de ρ, r e parâmetros de regressão (M6);
+    - estimar intervalos para proporções em quadrantes (M5).
+  - Reduzir dependência de hipóteses estritas de normalidade.
+
+Se surgirem evidências fortes de não linearidade, podem ser experimentadas, de forma exploratória, transformações simples de M1 e/ou M2 (por exemplo, log), sempre documentando e mantendo a interpretação na escala original.
 
 #### 12.3 Tratamento de dados faltantes e outliers
 
-Defina previamente as regras para lidar com dados ausentes e valores extremos, evitando decisões oportunistas após ver os resultados.
+O tratamento de dados faltantes e *outliers* seguirá regras definidas previamente, para reduzir decisões ad hoc após a observação dos resultados:
+
+- **Dados faltantes**
+
+  - Projetos sem valores válidos de M1 ou M2:
+    - serão **excluídos** das análises de correlação e regressão;
+    - permanecerão registrados em planilha de controle para análise de taxa de sucesso do pipeline.
+  - Projetos com M1 e M2 válidos, mas sem alguma variável de contexto (M7–M10):
+    - serão mantidos em análises que exigem apenas M1 e M2;
+    - poderão ser excluídos de análises que exigem especificamente a variável ausente (por exemplo, estratos por LOC se M7 estiver faltando).
+
+- **Identificação de outliers**
+
+  - *Outliers* serão identificados por:
+    - inspeção visual (gráficos de dispersão, boxplots);
+    - critérios baseados em **intervalo interquartil (IQR)** para M1 e M2.
+  - As análises serão feitas em duas versões:
+    1. **Com todos os dados válidos** (incluindo *outliers*);  
+    2. **Análise de sensibilidade** removendo *outliers* extremos segundo uma regra pré-definida (por exemplo, pontos acima de 1,5×IQR ou com evidência clara de erro de medição).
+  - As diferenças entre as duas abordagens serão explicitamente discutidas.
+
+- **Transformações de variáveis**
+
+  - Se necessário, poderão ser aplicadas transformações (por exemplo, log, raiz) para:
+    - reduzir assimetrias fortes;
+    - estabilizar variâncias.
+  - Mesmo nesses casos, as conclusões serão sempre apresentadas também na escala original de M1 e M2.
 
 #### 12.4 Plano de análise para dados qualitativos (se houver)
 
-Descreva como você tratará dados qualitativos (entrevistas, comentários, observações), especificando a técnica de análise (codificação, categorias, etc.).
+Além das métricas quantitativas, haverá **observações qualitativas** pontuais, principalmente na análise de casos discrepantes (Q2.3):
+
+- **Fonte dos dados qualitativos**
+  - Notas de inspeção manual de alguns projetos selecionados dos quadrantes:
+    - alta cobertura / baixo *mutation score* (QH-L);
+    - baixa/média cobertura / alto *mutation score* (QL-H).
+  - Durante a inspeção, serão observados aspectos como:
+    - estrutura dos testes (organização, granularidade);
+    - possíveis **_test smells_** evidentes (testes muito grandes, pouco coesos, sem asserts relevantes);
+    - padrão de asserts (por exemplo, muitos asserts triviais versus asserts que realmente verificam lógica de negócio).
+
+- **Técnica de análise qualitativa (leve)**
+  - As observações serão agrupadas em **categorias simples**, como:
+    - “testes superficiais com alto uso de mocks”;
+    - “cobertura inflada por testes pouco assertivos”;
+    - “testes focados em subset pequeno do domínio com asserts fortes”.
+  - Cada projeto inspecionado receberá rótulos qualitativos que ajudem a explicar por que ele se posiciona em certo quadrante.
+
+- **Integração com a análise quantitativa**
+  - Para cada caso qualitativo escolhido, serão apresentados:
+    - valores de M1, M2, M7–M10;
+    - quadrante de discrepância M5;
+    - rótulos qualitativos associados.
+  - Esses exemplos servirão para:
+    - ilustrar concretamente padrões encontrados nas análises agregadas;
+    - apoiar recomendações (por exemplo, “não confie apenas na cobertura se os testes tiverem características X/Y”).
+
+Os dados qualitativos terão, portanto, um papel **explicativo e ilustrativo**, complementando a análise estatística, sem configurar um estudo qualitativo em profundidade.
 
 ---
 

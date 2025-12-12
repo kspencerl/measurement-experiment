@@ -971,23 +971,153 @@ Os dados qualitativos terão, portanto, um papel **explicativo e ilustrativo**, 
 
 #### 13.1 Validade de conclusão
 
-Liste ameaças que podem comprometer a robustez das conclusões estatísticas (baixo poder, violação de suposições, erros de medida) e como pretende mitigá-las.
+A validade de conclusão diz respeito à robustez das inferências estatísticas que serão feitas a partir dos dados coletados (correlações, regressões, proporções em quadrantes, etc.). As principais ameaças previstas são:
+
+- **Tamanho limitado da amostra (baixo poder estatístico)**  
+  - Como o experimento depende de projetos que compilam, executam testes e permitem instrumentação com JaCoCo e PIT, é possível que o número final de unidades de análise fique na faixa de 30–40 projetos/módulos.  
+  - **Mitigação:**  
+    - Buscar inicialmente um conjunto maior de candidatos (50–60 projetos), antecipando perdas na filtragem.  
+    - Enfatizar **estimativas com intervalos de confiança** (via *bootstrap*), em vez de depender apenas de testes de hipótese (p-values).  
+    - Interpretar os resultados privilegiando **tamanho de efeito** (magnitude das correlações, R²) e não apenas significância estatística.
+
+- **Violação de suposições dos testes estatísticos (regressão/Pearson)**  
+  - O uso de correlação de Pearson e de regressão linear simples pressupõe, em algum grau, relação aproximadamente linear e resíduos com distribuição não muito distorcida. Esses pressupostos podem ser violados se a relação real entre cobertura e *mutation score* for não linear ou se houver forte heterocedasticidade.  
+  - **Mitigação:**  
+    - Utilizar **correlação de Spearman** como medida principal de associação (menos sensível a não linearidades).  
+    - Avaliar graficamente a relação M1 vs M2 (dispersão) e a distribuição de resíduos da regressão.  
+    - Relatar explicitamente quando suposições forem apenas aproximadamente atendidas, e tratar resultados de Pearson/regressão como complementares, não únicos.
+
+- **Influência de outliers e pontos influentes**  
+  - Projetos com valores extremos de cobertura ou *mutation score* (por exemplo, muito próximos de 0% ou 100%) podem distorcer correlações e regressões.  
+  - **Mitigação:**  
+    - Identificar *outliers* por inspeção visual e critérios baseados em IQR.  
+    - Realizar **análises de sensibilidade** com e sem *outliers* extremos, comparando resultados.  
+    - Explicitar no relatório quando conclusões dependem fortemente de poucos pontos.
+
+- **Erros de medida nas métricas M1 e M2**  
+  - Falhas de instrumentação (configuração incorreta de JaCoCo/PIT, testes flaky, timeouts de mutação) podem introduzir ruído ou viés nas métricas de cobertura e *mutation score*.  
+  - **Mitigação:**  
+    - Consolidar e revisar cuidadosamente o pipeline durante a **fase piloto**.  
+    - Registrar logs detalhados de cada execução e inspecionar manualmente casos suspeitos (por exemplo, *mutation score* zero em projetos com testes relevantes).  
+    - Reexecutar projetos com resultados aparentemente inconsistentes; se a inconsistência persistir, considerar exclusão justificada (documentando o motivo).
+
+- **Risco de “pesca de resultados” (multiple testing/fishing)**  
+  - Como o estudo é exploratório, existe o risco de buscar muitas correlações/estratificações e destacar apenas as associações “convenientes”.  
+  - **Mitigação:**  
+    - Manter o foco nas **questões GQM** predefinidas (Q1–Q4) e nas análises descritas no plano.  
+    - Indicar claramente quais análises foram planejadas previamente e quais surgiram de forma exploratória.  
+    - Interpretar resultados exploratórios com maior cautela, propondo-os como hipóteses para estudos futuros.
+
+---
 
 #### 13.2 Validade interna
 
-Identifique ameaças relacionadas a causas alternativas para os efeitos observados (history, maturation, selection, etc.) e explique suas estratégias de controle.
+A validade interna trata de em que medida os padrões observados (por exemplo, associação entre cobertura e *mutation score*) podem ser atribuídos à relação entre essas variáveis, e não a causas alternativas ou fatores de confusão.
+
+Principais ameaças:
+
+- **Fatores de confusão não observados (qualidade de design dos testes, domínio, práticas da equipe)**  
+  - A associação entre cobertura (M1) e *mutation score* (M2) pode ser influenciada por variáveis não diretamente medidas, como:  
+    - presença de *test smells* nos testes;  
+    - nível de criticidade do domínio;  
+    - cultura de qualidade da equipe;  
+    - uso de ferramentas adicionais de QA.  
+  - **Mitigação:**  
+    - Reconhecer explicitamente que o estudo é **observacional** e não permite inferência causal.  
+    - Utilizar variáveis de contexto (M7–M10) para contextualizar resultados e verificar, de forma exploratória, padrões em subgrupos (por exemplo, projetos maiores vs menores).  
+    - Incluir exemplos qualitativos (Seção 12.4) para ilustrar como certas características de testes podem explicar discrepâncias.
+
+- **Seleção de projetos com maior chance de “dar certo” (selection bias)**  
+  - A inclusão apenas de projetos que compilam e executam testes de forma estável pode favorecer projetos mais bem mantidos, que talvez tenham padrões de teste diferentes de projetos mais problemáticos.  
+  - **Mitigação:**  
+    - Documentar criteriosamente os **motivos de exclusão** de cada projeto (falha de *build*, ausência de testes, problemas com PIT).  
+    - Relatar a taxa de sucesso do pipeline (proporção de candidatos que geraram dados válidos).  
+    - Discutir nas ameaças à validade como esse viés de seleção pode afetar a interpretação dos resultados.
+
+- **Instrumentação heterogênea entre projetos (instrumentation bias)**  
+  - Diferenças acidentais na forma como JaCoCo/PIT são configurados em cada projeto poderiam introduzir vieses (por exemplo, pacotes excluídos em alguns casos).  
+  - **Mitigação:**  
+    - Adotar, tanto quanto possível, **configurações padronizadas de instrumentação** aplicadas igualmente a todos os projetos (por exemplo, via *plugins* de Maven/Gradle configurados pelos scripts do experimento).  
+    - Documentar em quais casos foi necessário fazer ajustes específicos e, se esses ajustes forem muitos ou muito heterogêneos, considerar excluir projetos problemáticos.
+
+- **Mudanças temporais (history/maturation)**  
+  - Como o estudo toma um **instantâneo** dos projetos em um intervalo de tempo relativamente curto, ameaças clássicas de “history” e “maturation” são reduzidas (não há acompanhamento longitudinal).  
+  - **Mitigação:**  
+    - Fixar, para cada projeto, um **commit de referência** (por exemplo, o HEAD em uma data específica) para garantir que todas as métricas sejam coletadas a partir do mesmo estado do código.  
+    - Documentar o período aproximado de coleta e evitar misturar métricas de momentos muito diferentes de evolução do projeto.
+
+---
 
 #### 13.3 Validade de constructo
 
-Refleta se as medidas escolhidas realmente representam os conceitos de interesse e descreva como você reduzirá ambiguidades de interpretação.
+A validade de constructo trata de quão bem as medidas escolhidas representam os conceitos teóricos de interesse.
+
+- **Cobertura por linha (M1) como medida de “alcance estrutural”**  
+  - A cobertura de código por linha é uma métrica amplamente utilizada para indicar o quanto do código é exercitado pelos testes, mas não garante que comportamentos críticos sejam adequadamente verificados.  
+  - **Mitigação:**  
+    - Deixar claro, conceitualmente, que M1 representa principalmente **alcance estrutural**, não efetividade completa dos testes.  
+    - Não interpretar cobertura elevada como sinônimo automático de “alta qualidade” dos testes, mas como parte do construto de efetividade.
+
+- **Mutation score (M2) como aproximação da “efetividade dos testes”**  
+  - *Mutation score* é influenciado por fatores como:  
+    - presença de mutantes semanticamente equivalentes;  
+    - conjunto de operadores de mutação habilitados;  
+    - timeouts ou exclusões configuradas no PIT.  
+  - Isso pode fazer com que M2 superestime ou subestime a efetividade real.  
+  - **Mitigação:**  
+    - Justificar o uso de M2 como proxy com base na literatura (Seção 2.3 e 2.4), enfatizando que se trata de **aproximação** do construto de efetividade.  
+    - Documentar a configuração do PIT (operadores, timeouts, filtros), indicando claramente os limites da medida.  
+    - Discutir explicitamente a influência de mutantes equivalentes na interpretação dos resultados.
+
+- **Redução de ambiguidades de interpretação**  
+  - Como M1 e M2 capturam dimensões diferentes (alcance vs detecção), há risco de ler a relação entre elas de forma simplista (“mais cobertura sempre significa testes melhores”).  
+  - **Mitigação:**  
+    - Estruturar a discussão dos resultados sempre destacando que cobertura e *mutation score* são **dimensões complementares**, não métricas substitutas.  
+    - Utilizar os quadrantes de discrepância (M5) para ilustrar, de forma concreta, que é possível ter alta cobertura com baixa efetividade (e vice-versa).  
+    - Evitar extrapolar conclusões do tipo “cobertura de X% garante Y% de efetividade”; focar em padrões e tendências, não em garantias determinísticas.
+
+---
 
 #### 13.4 Validade externa
 
-Discuta em que contextos os resultados podem ser generalizados e quais diferenças de cenário podem limitar essa generalização.
+A validade externa diz respeito à possibilidade de generalizar os resultados obtidos para outros contextos.
+
+- **Contexto de projetos (Java OSS vs sistemas proprietários)**  
+  - Os projetos analisados são Java de código aberto, muitas vezes bibliotecas/frameworks bastante utilizados. Isso pode não representar fielmente:  
+    - sistemas corporativos proprietários;  
+    - aplicações em outros ecossistemas (Kotlin, .NET, Node.js etc.);  
+    - sistemas altamente regulados com práticas de teste específicas.  
+  - **Mitigação:**  
+    - Descrever claramente a **população-alvo real** do estudo (projetos Java OSS com testes automatizados e *build* reproduzível).  
+    - Indicar explicitamente que os resultados são mais diretamente aplicáveis a esse tipo de projeto e que generalizações para outros contextos devem ser feitas com cautela.
+
+- **Ferramentas específicas (JaCoCo e PIT)**  
+  - As conclusões são baseadas em métricas produzidas por JaCoCo e PIT; outras ferramentas ou configurações diferentes podem gerar resultados distintos.  
+  - **Mitigação:**  
+    - Documentar versões e configurações de ferramentas usadas.  
+    - Indicar que replicações com outras ferramentas (por exemplo, diferentes motores de mutação) são desejáveis para reforçar ou revisar os achados.
+
+- **Amostra não probabilística (viés de seleção)**  
+  - A seleção de projetos por conveniência (popularidade, atividade recente, sucesso de *build*) pode levar a uma amostra que não representa todos os projetos Java OSS.  
+  - **Mitigação:**  
+    - Relatar o processo de amostragem de forma transparente (Seção 10).  
+    - Discutir nos resultados como o perfil da amostra (por exemplo, projetos mais maduros) pode influenciar as conclusões.  
+    - Tratar as inferências como **generalizações analíticas** (para casos similares aos estudados), não como generalizações estatísticas para todo o universo de projetos Java.
+
+---
 
 #### 13.5 Resumo das principais ameaças e estratégias de mitigação
 
-Faça uma síntese das ameaças mais críticas e das ações planejadas, de preferência em forma de lista ou tabela simples.
+A tabela abaixo sintetiza as ameaças consideradas mais críticas e as principais ações de mitigação:
+
+| Tipo de validade     | Ameaça principal                                        | Estratégia de mitigação                                                                                         |
+|----------------------|---------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| Conclusão            | Amostra relativamente pequena e ruído nas métricas     | Aumentar número de candidatos; usar intervalos de confiança e *bootstrap*; focar em tamanho de efeito.          |
+| Conclusão            | Violação de suposições de Pearson/regressão            | Usar Spearman como medida principal; inspecionar resíduos; tratar análises lineares como complementares.        |
+| Interna              | Fatores de confusão (qualidade de testes, domínio, etc.) | Reconhecer natureza observacional; usar variáveis de contexto; integrar análise quantitativa e qualitativa.     |
+| Interna              | Viés de seleção (apenas projetos que “buildam” bem)     | Documentar critérios de inclusão/exclusão e taxa de sucesso do pipeline; discutir impacto desse viés.           |
+| Constructo           | Cobertura e *mutation score* como proxies imperfeitas   | Ancorar conceitos na literatura; documentar configurações; deixar claro que são aproximações, não medidas perfeitas. |
+| Externa              | Foco em Java OSS e ferramentas específicas              | Descrever claramente a população-alvo; explicitar limites de generalização; sugerir replicações em outros contextos. |
 
 ---
 
@@ -995,19 +1125,90 @@ Faça uma síntese das ameaças mais críticas e das ações planejadas, de pref
 
 #### 14.1 Questões éticas (uso de sujeitos, incentivos, etc.)
 
-Descreva potenciais questões éticas (pressão para participar, uso de estudantes, incentivos, riscos de exposição) e como serão tratadas.
+Este estudo **não envolve participantes humanos** executando tarefas ou respondendo a instrumentos. As unidades de análise são **projetos de software de código aberto**, já publicados em repositórios públicos.
+
+Mesmo assim, há alguns pontos éticos relevantes:
+
+- **Risco de exposição/reputação de projetos específicos**  
+  - Projetos analisados podem ser associados a métricas desfavoráveis (por exemplo, alta cobertura, mas *mutation score* baixo).  
+  - **Tratamento:**  
+    - Nas discussões de casos problemáticos, considerar o uso de identificadores pseudonimizados (P1, P2, …) em vez de nomes explícitos de repositórios, especialmente quando as análises forem críticas.  
+    - Quando for útil citar projetos nominalmente (por exemplo, para replicabilidade), fazê-lo com cuidado e sem emitir juízos de valor sobre equipes ou indivíduos.
+
+- **Ausência de pressão, incentivos ou intervenção em pessoas**  
+  - Não há convite a desenvolvedores, nem coleta de respostas, nem incentivos para participação.  
+  - O estudo não altera o processo de desenvolvimento dos projetos; apenas executa ferramentas de análise em clones locais.  
+  - **Tratamento:**  
+    - Garantir que nenhuma ação do experimento altere o repositório remoto (apenas leitura/clone).  
+    - Não abrir issues ou *pull requests* direcionados a projetos com base exclusivamente em métricas obtidas, a menos que isso venha a ser planejado e acordado em novo escopo.
+
+De modo geral, o estudo se enquadra em um contexto ético de **baixo risco**, típico de pesquisas puramente observacionais sobre artefatos públicos.
+
+---
 
 #### 14.2 Consentimento informado
 
-Explique como os participantes serão informados sobre objetivos, riscos, benefícios e como registrarão seu consentimento.
+Como não há participação de sujeitos humanos, **não é necessário obter termo de consentimento livre e esclarecido** de indivíduos.
+
+Para manter boas práticas:
+
+- O uso de dados limita-se a informações disponíveis publicamente em repositórios OSS.  
+- Caso, em algum momento, surja a necessidade de contato com mantenedores (por exemplo, para esclarecer configurações de testes ou propor colaboração), essa interação será feita de forma transparente (via e-mail ou issues), explicando:  
+  - o objetivo acadêmico do estudo;  
+  - que nenhuma informação pessoal será objeto de análise;  
+  - que a participação é totalmente opcional.
+
+---
 
 #### 14.3 Privacidade e proteção de dados
 
-Indique que dados pessoais serão coletados, como serão protegidos (anonimização, pseudoanonimização, controle de acesso) e por quanto tempo serão mantidos.
+Os dados manipulados pelo experimento são, em sua maior parte, **dados técnicos** sobre projetos de software (métricas M1–M10, URLs de repositórios, características do código).
+
+Pontos de atenção:
+
+- **Dados pessoais potencialmente presentes nos repositórios**  
+  - Os históricos de *commit* podem conter nomes e e-mails de contribuidores, o que constitui dado pessoal.  
+  - **Tratamento:**  
+    - O pipeline do experimento não extrairá nem armazenará sistematicamente nomes ou e-mails de contribuidores.  
+    - As bases de dados consolidadas (CSV principal) conterão apenas identificadores técnicos de projeto (por exemplo, URL do repositório ou código P1, P2, …) e métricas agregadas.  
+
+- **Armazenamento e controle de acesso**  
+  - Arquivos de dados (scripts, relatórios, CSVs) serão mantidos em:  
+    - repositório Git (local e/ou GitHub privado ou público, conforme definido com o orientador);  
+    - armazenamento local da autora.  
+  - **Tratamento:**  
+    - Em repositórios públicos, garantir que nenhuma informação sensível ou pessoal seja incluída nos datasets.  
+    - Em repositórios privados, a autora e o orientador terão acesso aos dados; eventuais compartilhamentos adicionais serão controlados e justificados.  
+
+- **Tempo de retenção**  
+  - Os dados consolidados serão mantidos pelo menos até a conclusão do TCC e eventuais publicações derivadas. Após esse período, a autora poderá:  
+    - manter apenas versões agregadas e anonimizadas dos datasets; ou  
+    - excluir arquivos intermediários desnecessários (logs, relatórios detalhados).
+
+---
 
 #### 14.4 Aprovações necessárias (comitê de ética, jurídico, DPO, etc.)
 
-Liste órgãos ou pessoas que precisam aprovar o experimento (comitê de ética, jurídico, DPO, gestores) e o status atual dessas aprovações.
+Dado que:
+
+- não há participação de seres humanos;  
+- não há coleta sistemática de dados pessoais;  
+- os artefatos analisados são repositórios públicos de software;
+
+é provável que o estudo **não exija submissão formal** a um Comitê de Ética em Pesquisa com Seres Humanos (CEP), enquadrando-se em categoria de **risco mínimo ou isenção**.
+
+Ainda assim, para garantir conformidade com as normas da instituição:
+
+- **Orientador do TCC:**  
+  - Responsável por avaliar se o desenho está em conformidade com as diretrizes do curso e com a legislação aplicável.  
+  - **Status atual:** plano em revisão pelo orientador.
+
+- **Coordenação do curso / colegiado de TCC:**  
+  - Pode indicar a necessidade (ou não) de submissão formal ao CEP.  
+  - **Status atual:** a submissão a um comitê de ética não está prevista, mas, caso seja recomendada, o plano será ajustado e submetido.
+
+- **Outros atores (jurídico, DPO):**  
+  - Não há, a princípio, necessidade de envolvimento de jurídico ou DPO, pois o estudo não trata dados pessoais sensíveis nem estabelece bases de dados com perfis de indivíduos.
 
 ---
 
@@ -1015,19 +1216,80 @@ Liste órgãos ou pessoas que precisam aprovar o experimento (comitê de ética,
 
 #### 15.1 Recursos humanos e papéis
 
-Identifique os membros da equipe do experimento e descreva brevemente o papel e responsabilidade de cada um.
+- **Kimberly Liz Spencer Lourenço (autora / pesquisadora principal)**  
+  - Responsável pela concepção detalhada do experimento, implementação dos scripts de coleta e análise, execução das coletas, análise estatística, discussão dos resultados e redação do TCC.
+
+- **Orientador do TCC**  
+  - Apoio na definição dos objetivos, desenho metodológico, plano de análise e avaliação de ameaças à validade.  
+  - Revisão crítica das versões do plano de experimento, dos resultados e das conclusões.  
+  - Aprovação de mudanças relevantes no escopo do estudo.
+
+- **Possíveis colaboradores pontuais (colegas de curso ou grupo de pesquisa)**  
+  - Revisão por pares de scripts, conferência de resultados e feedback em relação ao entendimento dos métodos.  
+  - Esses colaboradores não são formalmente responsáveis pelo experimento, mas podem contribuir com sugestões técnicas.
+
+---
 
 #### 15.2 Infraestrutura técnica necessária
 
-Liste ambientes, servidores, ferramentas, repositórios e integrações que devem estar disponíveis para executar o experimento.
+- **Ambiente de desenvolvimento e execução**  
+  - Computador pessoal ou notebook com sistema operacional baseado em Linux (ou equivalente) com recursos mínimos de CPU, RAM e armazenamento para:  
+    - clonar dezenas de repositórios;  
+    - executar *builds*, testes e mutação (PIT) de forma razoavelmente eficiente.
+
+- **Software e ferramentas**  
+  - **JDK** (versão padronizada, por exemplo, 11 ou 17, a ser definida no README).  
+  - **Maven** e **Gradle** em versões estáveis e compatíveis com os projetos.  
+  - **JaCoCo** integrado ao *build* para medição de cobertura.  
+  - **PIT** (via `pitest-maven-plugin` ou equivalente para Gradle).  
+  - **Python** (com bibliotecas como `pandas`, `numpy`, `scipy`, `statsmodels`, `matplotlib` ou similar).  
+  - **Git** para clonagem e controle de versão.  
+  - Editor/IDE (por exemplo, IntelliJ IDEA, VS Code) para desenvolvimento de scripts e inspeção de projetos.  
+  - Ambiente para análise (Jupyter Notebook ou similar).
+
+- **Repositórios e integrações**  
+  - Acesso à **API do GitHub** (via token pessoal, se necessário) para coleta de metadados de projetos.  
+  - Repositório Git (GitHub ou similar) para versionar:  
+    - o plano de experimento;  
+    - os scripts de coleta;  
+    - o dataset (ou versões anonimizadas).
+
+---
 
 #### 15.3 Materiais e insumos
 
-Relacione materiais físicos ou digitais necessários (máquinas, licenças, formulários, dispositivos) que precisam estar prontos antes da operação.
+- **Materiais físicos**  
+  - Notebook/computador e periféricos (fonte, mouse, etc.).  
+  - Acesso à internet estável.
+
+- **Materiais digitais**  
+  - Licenças ou acessos (quando aplicável):  
+    - a princípio, todas as ferramentas utilizadas serão **gratuitas ou de código aberto**, não exigindo licenças pagas.  
+  - Templates de documentos (por exemplo, modelo SBC para o artigo; estrutura padrão do plano de experimento).  
+  - Scripts e *Makefiles* desenvolvidos especificamente para o experimento.  
+  - Diretórios preparados para armazenamento de:  
+    - relatórios JaCoCo e PIT;  
+    - CSVs de dados brutos e consolidados;  
+    - notebooks de análise.
+
+---
 
 #### 15.4 Orçamento e custos estimados
 
-Faça uma estimativa dos principais custos envolvidos (horas de pessoas, serviços, licenças, infraestrutura) e a fonte de financiamento.
+- **Custos diretos com ferramentas e infraestrutura**  
+  - Espera-se **custo financeiro direto nulo ou muito baixo**, pois:  
+    - ferramentas principais (JDK, Maven, Gradle, JaCoCo, PIT, Python, Git) são gratuitas;  
+    - o ambiente de execução utilizará hardware já disponível da autora;  
+    - eventuais serviços em nuvem, se usados, poderão operar em camadas gratuitas (free tiers) ou com consumo mínimo.
+
+- **Custos indiretos**  
+  - Tempo da autora dedicado ao desenvolvimento do experimento, coleta, análise e redação.  
+  - Consumo de energia elétrica e banda de internet.  
+  - Eventual impressão de documentos para a banca.
+
+- **Fonte de financiamento**  
+  - Recursos próprios da autora (equipamentos, conexão, tempo de trabalho).  
+  - Suporte institucional indireto da PUC Minas (acesso à biblioteca, laboratórios, orientações).
 
 ---
 
@@ -1035,15 +1297,86 @@ Faça uma estimativa dos principais custos envolvidos (horas de pessoas, serviç
 
 #### 16.1 Macrocronograma (até o início da execução)
 
-Defina as principais datas e marcos (conclusão do plano, piloto, revisão, início da operação) com uma visão de tempo realista.
+Considerando o calendário típico de TCC I (2025/2) e TCC II (2026/1), o macrocronograma até o início da operação principal (coleta em larga escala) pode ser sintetizado assim:
+
+- **Novembro–Dezembro/2025**  
+  - Elaboração e refinamento do **plano de experimento** (versão v1.x).  
+  - Estudo aprofundado da literatura e das aulas relacionadas a experimentação e estatística.  
+  - Alinhamento inicial com o orientador sobre objetivos, escopo e desenho.
+
+- **Janeiro/2026**  
+  - Configuração definitiva do **ambiente técnico** (JDK, Maven/Gradle, JaCoCo, PIT, Python).  
+  - Implementação inicial dos scripts de automação (clone, *build*, cobertura, mutação, parsing de relatórios).  
+  - Definição preliminar da lista de projetos candidatos via GitHub.
+
+- **Fevereiro/2026**  
+  - Execução da **fase piloto** com 5–10 projetos (Seção 11.4).  
+  - Ajustes nos scripts, na configuração de ferramentas e nos critérios de inclusão/exclusão.  
+  - Atualização do plano de experimento (eventual v1.1) incorporando lições do piloto.
+
+- **Início de Março/2026**  
+  - Reunião de **go/no-go** com o orientador para validação do plano revisado e do pipeline técnico.  
+  - **Início planejado da operação principal**: execução do pipeline completo de coleta no conjunto maior de projetos.
+
+A partir desse marco (início de março/2026), começa a fase de **execução plena do experimento**, com coletas, análises e interpretação, que será detalhada no cronograma geral do TCC II.
+
+---
 
 #### 16.2 Dependências entre atividades
 
-Indique quais atividades dependem de outras para começar (por exemplo, treinamento após aprovação ética), deixando essas dependências claras.
+Algumas dependências importantes:
+
+- A **fase piloto** depende de:  
+  - plano de experimento minimamente estável (objetivos, métricas, critérios de inclusão);  
+  - ambiente técnico configurado;  
+  - scripts de automação em versão funcional inicial.
+
+- A **coleta principal (operação)** depende de:  
+  - piloto bem-sucedido (pipeline validado);  
+  - eventuais ajustes de critérios de inclusão/exclusão e configurações do PIT concluídos;  
+  - aprovação do orientador para avançar (go).
+
+- A **análise estatística** depende de:  
+  - dataset consolidado com M1–M2 (e, idealmente, M7–M10) para número suficiente de projetos;  
+  - definição final de como lidar com dados faltantes e outliers (Seção 12.3).
+
+- A **redação final do TCC** depende de:  
+  - resultados da análise quantitativa e qualitativa;  
+  - discussão consolidada das ameaças à validade e implicações práticas.
+
+Essas dependências serão consideradas ao planejar prazos internos, evitando iniciar etapas que dependam de pré-requisitos ainda não satisfeitos.
+
+---
 
 #### 16.3 Riscos operacionais e plano de contingência
 
-Liste riscos ligados a cronograma, disponibilidade de pessoas ou recursos, e descreva ações de contingência caso esses riscos se materializem.
+Alguns riscos operacionais adicionais (além dos riscos de alto nível da Seção 6) e respectivas contingências:
+
+- **Risco O1 – Atrasos por carga acadêmica/profissional da autora**  
+  - Possível sobrecarga com outras disciplinas, trabalho ou compromissos pessoais.  
+  - **Contingência:**  
+    - Planejar janelas de tempo dedicadas ao TCC com antecedência.  
+    - Priorizar, no cronograma, atividades com maior dependência (por exemplo, fase piloto e coleta principal).  
+    - Em caso de atraso, negociar ajustes pontuais de escopo (por exemplo, redução do número de projetos) com o orientador.
+
+- **Risco O2 – Problemas com hardware ou ambiente local**  
+  - Falhas no notebook ou perda de dados.  
+  - **Contingência:**  
+    - Realizar **backups regulares** do repositório (Git remoto) e dos datasets.  
+    - Documentar passo a passo a configuração do ambiente para permitir reconstrução rápida em outra máquina, se necessário.
+
+- **Risco O3 – Atrasos devido a tempo de execução excessivo do PIT**  
+  - Execução de mutação muito lenta em projetos grandes, comprometendo o cronograma.  
+  - **Contingência:**  
+    - Ajustar o escopo (por módulo, por pacote ou via amostragem de classes/projetos).  
+    - Revisar os parâmetros de configuração do PIT (timeouts, operadores habilitados).  
+    - Discutir com o orientador eventual redução de tamanho da amostra, mantendo coerência com os objetivos.
+
+- **Risco O4 – Mudanças de requisitos institucionais (por exemplo, necessidade inesperada de aprovação ética)**  
+  - Eventual orientação da coordenação para submissão do estudo a comitê de ética, mesmo sem participantes humanos.  
+  - **Contingência:**  
+    - Preparar documentação resumida do experimento para eventual submissão rápida.  
+    - Ajustar o cronograma em função dos prazos de avaliação, priorizando atividades que não dependam dessa aprovação.
 
 ---
 
@@ -1051,15 +1384,86 @@ Liste riscos ligados a cronograma, disponibilidade de pessoas ou recursos, e des
 
 #### 17.1 Papéis e responsabilidades formais
 
-Defina quem decide, quem executa, quem revisa e quem apenas deve ser informado, deixando claro o fluxo de responsabilidade.
+Uma forma simples de estruturar a governança é explicitar quem **decide**, quem **executa**, quem **revisa** e quem **é informado**:
+
+- **Decisão (D)**  
+  - Orientador do TCC:  
+    - Decide sobre o desenho metodológico final, escopo da amostra, ajustes significativos no experimento e *go/no-go* para execução principal.  
+
+- **Execução (E)**  
+  - Autora (Kimberly):  
+    - Implementa scripts, configura ambiente, executa o pipeline de coleta, realiza análises estatísticas e redige o TCC.
+
+- **Revisão (R)**  
+  - Orientador:  
+    - Revisa o plano de experimento, os resultados intermediários e finais e a redação do trabalho.  
+  - Eventuais coorientadores ou membros de grupo de pesquisa:  
+    - Podem revisar partes específicas (por exemplo, análises estatísticas).
+
+- **Informados (I)**  
+  - Coordenação de TCC / banca examinadora:  
+    - São informados sobre o progresso, resultados principais e eventuais mudanças de escopo relevantes.  
+
+Em termos de RACI simplificado:
+
+- Planejamento do experimento: **R/A – autora**, **C – orientador**  
+- Aprovação do plano final: **R – orientador**, **A – coordenação de TCC (quando aplicável)**  
+- Execução da coleta: **R – autora**, **I – orientador**  
+- Análise de dados e redação: **R – autora**, **C – orientador**  
+- Validação das conclusões: **R – orientador**, **C – banca**  
+
+---
 
 #### 17.2 Ritos de acompanhamento pré-execução
 
-Descreva as reuniões, checkpoints e revisões previstos antes da execução, incluindo frequência e participantes.
+Antes da execução principal, estão previstos os seguintes ritos:
+
+- **Reuniões de alinhamento inicial (Nov/Dez 2025)**  
+  - Frequência: pelo menos 1–2 encontros para revisar objetivos, escopo e estrutura do plano de experimento.  
+  - Participantes: autora e orientador.
+
+- **Checkpoint de ambiente e scripts (Jan 2026)**  
+  - Objetivo: conferir se o ambiente está configurado e se os scripts de automação rodaram com sucesso em pelo menos 1–2 projetos de teste.  
+  - Participantes: autora (relato) e orientador (validação).
+
+- **Revisão da fase piloto (Fev 2026)**  
+  - Apresentação dos resultados da fase piloto (taxa de sucesso, problemas encontrados, tempo médio por projeto).  
+  - Discussão de ajustes em critérios de inclusão/exclusão e configurações de ferramentas.  
+  - Participantes: autora e orientador.
+
+- **Reunião de go/no-go para operação principal (Mar 2026)**  
+  - Análise se os critérios de prontidão foram atendidos (Seção 20).  
+  - Decisão formal (mesmo que informalmente registrada em e-mail) sobre iniciar a coleta em larga escala.  
+  - Participantes: autora e orientador; coordenação de TCC pode ser informada, se necessário.
+
+Comunicações intermediárias podem ocorrer por e-mail ou mensagens curtas (por exemplo, WhatsApp/Teams), sempre que houver descoberta relevante ou problema que demande decisão.
+
+---
 
 #### 17.3 Processo de controle de mudanças no plano
 
-Explique como mudanças no desenho ou no escopo do experimento serão propostas, analisadas, aprovadas e registradas.
+Mudanças no desenho ou no escopo do experimento serão geridas da seguinte forma:
+
+1. **Proposição da mudança**  
+   - A autora identifica a necessidade de mudança (por exemplo, redução do número de projetos, ajuste de métricas, alteração de configurações do PIT).  
+   - Registra essa necessidade em um documento simples de “proposta de mudança” (por exemplo, seção de _changelog_ no próprio plano, ou issue em repositório Git).
+
+2. **Análise e discussão**  
+   - A proposta é discutida com o orientador, avaliando:  
+     - impacto na capacidade de responder às questões de pesquisa;  
+     - implicações para cronograma e recursos;  
+     - impacto nas ameaças à validade.
+
+3. **Decisão e registro**  
+   - O orientador aprova ou não a mudança.  
+   - Em caso de aprovação, o plano é atualizado (nova versão v1.x → v1.y) com:  
+     - descrição sucinta da mudança;  
+     - justificativa;  
+     - data da modificação.  
+   - Versões anteriores do documento são preservadas para rastreabilidade.
+
+4. **Comunicação**  
+   - Mudanças relevantes (por exemplo, alteração significativa no escopo ou na amostra) são comunicadas à coordenação de TCC ou registradas em relatórios de acompanhamento, se houver.
 
 ---
 
@@ -1067,15 +1471,74 @@ Explique como mudanças no desenho ou no escopo do experimento serão propostas,
 
 #### 18.1 Repositórios e convenções de nomeação
 
-Indique onde o plano, instrumentos, scripts e dados (futuros) serão armazenados e quais convenções de nomes serão usadas.
+- **Repositório principal do experimento**  
+  - Um repositório Git (por exemplo, no GitHub) será utilizado para armazenar:  
+    - plano de experimento (este documento);  
+    - scripts de automação (`scripts/`);  
+    - dados brutos e processados (`data/raw/`, `data/processed/`);  
+    - notebooks de análise (`analysis/`);  
+    - documentação adicional (`docs/`).
+
+- **Convenções de nomeação sugeridas**  
+  - Plano de experimento: `plano-experimento-coverage-mutation-v1.0.md` (com atualização de versão no nome ou no cabeçalho).  
+  - Dataset consolidado: `data/processed/dataset-oss-coverage-mutation.csv`.  
+  - Scripts principais:  
+    - `scripts/collect_coverage_and_mutation.sh`  
+    - `scripts/parse_reports.py`  
+  - Notebooks:  
+    - `analysis/01_descritiva.ipynb`  
+    - `analysis/02_correlacao_regressao.ipynb`  
+    - `analysis/03_quadrantes_casos.ipynb`
+
+A padronização facilita a localização de artefatos e a compreensão por terceiros que venham a replicar o estudo.
+
+---
 
 #### 18.2 Templates e artefatos padrão
 
-Liste os modelos (questionários, formulários, checklists, scripts) que serão usados e onde podem ser encontrados.
+Os seguintes templates e artefatos padrão serão utilizados ou criados:
+
+- **Template do plano de experimento**  
+  - Baseado nas orientações da disciplina de Projeto de Pesquisa/Experimentação (estruturas de seções 1–20).
+
+- **Template de dataset**  
+  - Arquivo CSV com cabeçalhos pré-definidos para M1–M10 e metadados, por exemplo:  
+    - `project_id, repo_url, M1_coverage_line, M2_mutation_score, M7_loc, M8_num_tests, M9_project_age, ...`
+
+- **Checklist de execução do pipeline**  
+  - Lista de passos padrão para cada projeto: `clone`, `build+test`, `jacoco`, `pit`, `parse`, `registrar status`.
+
+- **Scripts utilitários**  
+  - Funções padrão para leitura e validação de relatórios JaCoCo/PIT.  
+  - Scripts para geração de gráficos e tabelas usadas no TCC.
+
+Esses templates ficarão documentados no README do repositório e/ou em uma pasta `docs/templates/`.
+
+---
 
 #### 18.3 Plano de empacotamento para replicação futura
 
-Descreva o que será organizado desde já (documentos, scripts, instruções) para facilitar a replicação do experimento por outras equipes ou no futuro.
+Para facilitar replicações futuras do experimento por outras equipes ou pela própria autora, serão organizados:
+
+- **Pacote de código e configurações**  
+  - Repositório Git contendo todos os scripts necessários, com README detalhando:  
+    - requisitos de ambiente;  
+    - comandos básicos;  
+    - fluxo de execução (do clone até a geração do CSV consolidado).
+
+- **Documentação de ambiente**  
+  - Descrição textual (e opcionalmente um `requirements.txt` ou `environment.yml`) das dependências Python.  
+  - Especificação de versões mínimas de JDK, Maven, Gradle, JaCoCo e PIT.  
+  - Opcionalmente, um `Dockerfile` ou instruções equivalentes para executar tudo dentro de um contêiner reproduzível.
+
+- **Exemplo de dataset (amostra)**  
+  - Um subconjunto do dataset (por exemplo, 3 a 5 projetos) poderá ser incluído como exemplo para ilustrar o formato e permitir que terceiros testem os scripts sem realizar toda a coleta.
+
+- **Instruções para replicar em novo conjunto de projetos**  
+  - Passo a passo para:  
+    - gerar nova lista de candidatos via GitHub;  
+    - executar o pipeline com essa nova lista;  
+    - comparar resultados com o estudo original.
 
 ---
 
@@ -1083,15 +1546,68 @@ Descreva o que será organizado desde já (documentos, scripts, instruções) pa
 
 #### 19.1 Públicos e mensagens-chave pré-execução
 
-Liste os grupos que precisam ser comunicados e quais mensagens principais devem receber (objetivos, escopo, datas, impactos esperados).
+- **Orientador do TCC**  
+  - Mensagens principais:  
+    - objetivos, escopo do experimento e hipóteses;  
+    - plano de coleta (número estimado de projetos, critérios de inclusão/exclusão);  
+    - principais riscos e estratégias de mitigação;  
+    - cronograma de execução.
+
+- **Coordenação de TCC / banca (indiretamente)**  
+  - Mensagens principais (via relatórios ou apresentações):  
+    - síntese do plano de experimento;  
+    - evidência de que o estudo está metodologicamente fundamentado;  
+    - indicação de que riscos éticos e de validade foram analisados.
+
+- **Comunidade acadêmica (posteriormente)**  
+  - Quando houver resultados consolidados, a comunicação incluirá:  
+    - descrição dos achados principais sobre a relação cobertura–*mutation score*;  
+    - limitações e ameaças à validade;  
+    - recomendações práticas.
+
+- **Comunidade OSS/QA (eventual)**  
+  - Em caso de divulgação em blogs técnicos ou repositórios públicos:  
+    - foco em implicações práticas para equipes que usam cobertura como KPI;  
+    - cuidados ao interpretar resultados de *mutation testing*.
+
+---
 
 #### 19.2 Canais e frequência de comunicação
 
-Defina por quais canais (e-mail, reuniões, Slack/Teams, etc.) e com que frequência as comunicações serão feitas.
+- **Com o orientador**  
+  - Canais: reuniões presenciais ou online (Teams/Meet), e-mail, mensagens curtas (WhatsApp/Teams).  
+  - Frequência:  
+    - pelo menos um encontro em cada fase-chave (planejamento inicial, pós-piloto, pré-operação, análise de resultados);  
+    - comunicações rápidas sempre que surgir bloqueio relevante ou decisão que exija aprovação.
+
+- **Com coordenação/banca**  
+  - Canais: relatórios formais, apresentações previstas nas disciplinas de TCC, e eventualmente e-mail.  
+  - Frequência: conforme calendário institucional de entregas (TCC I e TCC II).
+
+- **Comunicação externa (blog, GitHub, etc.)**  
+  - Canais: README do repositório, Markdown com resultados, eventuais posts após a defesa do TCC.  
+  - Frequência: após marcos principais (por exemplo, publicação do artigo, defesa do TCC).
+
+---
 
 #### 19.3 Pontos de comunicação obrigatórios
 
-Especifique os eventos que exigem comunicação formal (aprovação do plano, mudanças relevantes, adiamentos, cancelamentos).
+Serão considerados eventos que exigem comunicação formal (pelo menos ao orientador, e, quando necessário, à coordenação):
+
+- **Aprovação do plano de experimento**  
+  - Registro de que o plano v1.x foi aprovado para execução da fase piloto.
+
+- **Conclusão e avaliação da fase piloto**  
+  - Relato dos resultados do piloto e das decisões de ajuste (ou manutenção) do plano.
+
+- **Go/no-go para coleta principal**  
+  - Confirmação formal de que os critérios de prontidão foram atendidos e de que a coleta em larga escala pode iniciar.
+
+- **Mudanças relevantes de escopo ou cronograma**  
+  - Por exemplo: redução significativa no tamanho da amostra, alteração de métricas principais, impossibilidade de aplicar mutação em parte dos projetos.
+
+- **Adiamento ou eventual cancelamento do experimento**  
+  - Se algum risco crítico se materializar e inviabilizar o estudo, essa decisão deve ser comunicada e registrada, juntamente com plano alternativo.
 
 ---
 
@@ -1099,8 +1615,55 @@ Especifique os eventos que exigem comunicação formal (aprovação do plano, mu
 
 #### 20.1 Checklist de prontidão (itens que devem estar completos)
 
-Liste os itens que precisam estar finalizados e aprovados (plano, instrumentos, aprovação ética, recursos, comunicação) para autorizar o início da operação.
+Antes de iniciar a **operação principal** (coleta em larga escala), os seguintes itens devem estar concluídos e aprovados:
+
+1. **Plano de experimento**  
+   - Versão atualizada (v1.x ou superior) revisada e aprovada pelo orientador, incluindo:  
+     - objetivos e hipóteses;  
+     - desenho metodológico;  
+     - plano de análise;  
+     - avaliação de ameaças à validade.
+
+2. **Ambiente técnico configurado e testado**  
+   - JDK, Maven/Gradle, JaCoCo, PIT e Python instalados e funcionando.  
+   - Scripts de automação (clone, *build+test*, cobertura, mutação, parsing) validados em pelo menos alguns projetos piloto.
+
+3. **Fase piloto concluída**  
+   - Execução bem-sucedida em 5–10 projetos, com:  
+     - métricas M1–M2 e M7–M10 coletadas;  
+     - problemas identificados e, quando possível, mitigados.  
+   - Decisões sobre ajustes de configuração, critérios de inclusão/exclusão e tamanho viável da amostra.
+
+4. **Lista final de candidatos à coleta principal**  
+   - Arquivo (CSV/planilha) contendo projetos selecionados para a fase principal, com informações mínimas (URL, estrelas, atividade, status preliminar de build).
+
+5. **Documentação mínima de reprodutibilidade**  
+   - README atualizado com instruções para executar o pipeline.  
+   - Estrutura de pastas (`scripts/`, `data/`, `analysis/`, `docs/`) criada e integrada ao repositório.
+
+6. **Verificação de requisitos éticos e de privacidade**  
+   - Confirmação de que não há coleta sistemática de dados pessoais.  
+   - Decisão documentada (orientador + coordenação, se necessário) sobre a inexistência de necessidade de aprovação formal em comitê de ética (ou submissão realizada, se exigida).
+
+Atendidos esses itens, o experimento é considerado **“ready”** para avançar para a coleta principal.
+
+---
 
 #### 20.2 Aprovações finais para iniciar a operação
 
-Indique quem precisa dar o “ok final” (nomes ou cargos) e como esse aceite será registrado antes da execução começar.
+Para iniciar a operação principal (execução do pipeline em todos os projetos elegíveis), são necessárias:
+
+- **Aprovação do orientador do TCC**  
+  - Confirmando que:  
+    - o plano de experimento está adequado;  
+    - a fase piloto foi satisfatória;  
+    - os riscos principais estão compreendidos e mitigados na medida do possível.  
+  - Esse “ok final” pode ser registrado por:  
+    - e-mail da autora ao orientador com resumo da prontidão, respondido com concordância; ou  
+    - anotação em ata ou documento interno de acompanhamento de TCC.
+
+- **Conformidade com diretrizes da coordenação de TCC**  
+  - Se houver formulários ou relatórios intermediários exigidos pela disciplina (por exemplo, “plano de pesquisa aprovado”), eles devem estar preenchidos e validados.  
+  - Qualquer exigência adicional da coordenação (por exemplo, aprovação em colegiado) deve ser cumprida antes da operação.
+
+Após essas aprovações, a autora pode iniciar formalmente a **coleta principal**, de acordo com o cronograma planejado, registrando a data de início e monitorando a execução conforme a governança definida.
